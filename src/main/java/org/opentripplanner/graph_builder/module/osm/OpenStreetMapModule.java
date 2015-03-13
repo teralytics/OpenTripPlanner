@@ -13,16 +13,11 @@
 
 package org.opentripplanner.graph_builder.module.osm;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Iterables;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.common.TurnRestriction;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
@@ -49,41 +44,17 @@ import org.opentripplanner.routing.bike_rental.BikeRentalStationService;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.TraversalRequirements;
 import org.opentripplanner.routing.core.TraverseMode;
-import org.opentripplanner.routing.edgetype.AreaEdge;
-import org.opentripplanner.routing.edgetype.AreaEdgeList;
-import org.opentripplanner.routing.edgetype.BikeParkEdge;
-import org.opentripplanner.routing.edgetype.ElevatorAlightEdge;
-import org.opentripplanner.routing.edgetype.ElevatorBoardEdge;
-import org.opentripplanner.routing.edgetype.ElevatorHopEdge;
-import org.opentripplanner.routing.edgetype.FreeEdge;
-import org.opentripplanner.routing.edgetype.NamedArea;
-import org.opentripplanner.routing.edgetype.ParkAndRideEdge;
-import org.opentripplanner.routing.edgetype.ParkAndRideLinkEdge;
-import org.opentripplanner.routing.edgetype.RentABikeOffEdge;
-import org.opentripplanner.routing.edgetype.RentABikeOnEdge;
-import org.opentripplanner.routing.edgetype.StreetEdge;
-import org.opentripplanner.routing.edgetype.StreetTraversalPermission;
+import org.opentripplanner.routing.edgetype.*;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.services.notes.NoteMatcher;
 import org.opentripplanner.routing.util.ElevationUtils;
-import org.opentripplanner.routing.vertextype.BikeParkVertex;
-import org.opentripplanner.routing.vertextype.BikeRentalStationVertex;
-import org.opentripplanner.routing.vertextype.ElevatorOffboardVertex;
-import org.opentripplanner.routing.vertextype.ElevatorOnboardVertex;
-import org.opentripplanner.routing.vertextype.ExitVertex;
-import org.opentripplanner.routing.vertextype.IntersectionVertex;
-import org.opentripplanner.routing.vertextype.ParkAndRideVertex;
-import org.opentripplanner.routing.vertextype.TransitStopStreetVertex;
+import org.opentripplanner.routing.vertextype.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
+import java.util.*;
 
 /**
  * Builds a street graph from OpenStreetMap data.
@@ -518,11 +489,11 @@ public class OpenStreetMapModule implements GraphBuilderModule {
 
             /* build the street segment graph from OSM ways */
             long wayIndex = 0;
-            long wayCount = osmdb.getWays().size();
+            long wayCount = osmdb.getAllWays().size();
 
             WAY:
-            for (OSMWay way : osmdb.getWays()) {
-
+            for (OSMWay way : osmdb.getAllWays()) {
+                
                 if (wayIndex % 10000 == 0)
                     LOG.debug("ways=" + wayIndex + "/" + wayCount);
                 wayIndex++;
@@ -993,11 +964,12 @@ public class OpenStreetMapModule implements GraphBuilderModule {
             StreetTraversalPermission permissionsBack = permissionPair.second;
 
             if (permissionsFront.allowsAnything()) {
-                street = getEdgeForStreet(start, end, way, index, startNode, endNode, length,
+                street = getEdgeForStreet(0, way.getId(), start, end, way, index, startNode, endNode, length,
                         permissionsFront, geometry, false);
             }
             if (permissionsBack.allowsAnything()) {
-                backStreet = getEdgeForStreet(end, start, way, index, endNode, startNode, length,
+                int fwdId = street == null ? 0 : street.getId();
+                backStreet = getEdgeForStreet(fwdId, way.getId(), end, start, way, index, endNode, startNode, length,
                         permissionsBack, backGeometry, true);
             }
             if (street != null && backStreet != null) {
@@ -1015,9 +987,9 @@ public class OpenStreetMapModule implements GraphBuilderModule {
             return new P2<StreetEdge>(street, backStreet);
         }
 
-        private StreetEdge getEdgeForStreet(IntersectionVertex start, IntersectionVertex end,
-                                                 OSMWay way, int index, long startNode, long endNode, double length,
-                                                 StreetTraversalPermission permissions, LineString geometry, boolean back) {
+        private StreetEdge getEdgeForStreet(int id, long osmId, IntersectionVertex start, IntersectionVertex end,
+                                             OSMWay way, int index, long startNode, long endNode, double length,
+                                             StreetTraversalPermission permissions, LineString geometry, boolean back) {
 
             String label = "way " + way.getId() + " from " + index;
             label = unique(label);
@@ -1031,7 +1003,7 @@ public class OpenStreetMapModule implements GraphBuilderModule {
 
             float carSpeed = wayPropertySet.getCarSpeedForWay(way, back);
 
-            StreetEdge street = edgeFactory.createEdge(start, end, geometry, name, length,
+            StreetEdge street = edgeFactory.createEdge(id, osmId, start, end, geometry, name, length,
                     permissions, back);
             street.setCarSpeed(carSpeed);
 

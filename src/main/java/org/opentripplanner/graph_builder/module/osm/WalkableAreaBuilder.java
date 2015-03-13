@@ -383,7 +383,7 @@ public class WalkableAreaBuilder {
                     + " to " + endEndpoint.getLabel();
             String name = __handler.getNameForWay(areaEntity, label);
 
-            AreaEdge street = edgeFactory.createAreaEdge(startEndpoint, endEndpoint, line, name,
+            AreaEdge street = edgeFactory.createAreaEdge(0, areaEntity.getId(), startEndpoint, endEndpoint, line, name,
                     length, areaPermissions, false, edgeList);
             street.setCarSpeed(carSpeed);
 
@@ -402,7 +402,8 @@ public class WalkableAreaBuilder {
                     + startEndpoint.getLabel();
             name = __handler.getNameForWay(areaEntity, label);
 
-            AreaEdge backStreet = edgeFactory.createAreaEdge(endEndpoint, startEndpoint,
+            int fwdId = street.getId();
+            AreaEdge backStreet = edgeFactory.createAreaEdge(fwdId, areaEntity.getId(), endEndpoint, startEndpoint,
                     (LineString) line.reverse(), name, length, areaPermissions, true, edgeList);
             backStreet.setCarSpeed(carSpeed);
 
