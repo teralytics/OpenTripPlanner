@@ -13,16 +13,10 @@
 
 package org.opentripplanner.graph_builder.module.shapefile;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.Query;
 import org.geotools.factory.Hints;
@@ -47,14 +41,11 @@ import org.opentripplanner.routing.edgetype.StreetTraversalPermission;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.services.notes.StreetNotesService;
 import org.opentripplanner.routing.vertextype.IntersectionVertex;
+import org.opentripplanner.util.NonLocalizedString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import org.opentripplanner.util.NonLocalizedString;
+import java.util.*;
 
 /**
  * Loads a shapefile into an edge-based graph.
@@ -206,11 +197,10 @@ public class ShapefileStreetModule implements GraphBuilderModule {
                 P2<StreetTraversalPermission> permissions = permissionConverter.convert(feature);
 
                 // TODO Set appropriate car speed from shapefile source.
-                StreetEdge street = edgeFactory.createEdge(0, -1L, startIntersection, endIntersection,
+                StreetEdge street = edgeFactory.createEdge(0, -1, startIntersection, endIntersection,
                         geom, new NonLocalizedString(name), length, permissions.first, false);
                 LineString reversed = (LineString) geom.reverse();
-                int fwdId = street.getId();
-                StreetEdge backStreet = edgeFactory.createEdge(fwdId, -1L, endIntersection, startIntersection,
+                StreetEdge backStreet = edgeFactory.createEdge(street.getId(), street.getOsmId(), endIntersection, startIntersection,
                         reversed, new NonLocalizedString(name), length, permissions.second, true);
                 backStreet.shareData(street);
 

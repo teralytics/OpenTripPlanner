@@ -45,7 +45,7 @@ public abstract class Edge implements Serializable {
      * Identifier of the edge. Negative means not set.
      */
     private int id;
-    
+
     private long osmId;
 
     protected Vertex fromv;
