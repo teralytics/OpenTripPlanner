@@ -98,7 +98,8 @@ public class OSMFilter {
             if (entity.isBicycleExplicitlyAllowed()) {
                 permission = permission.add(StreetTraversalPermission.BICYCLE);
             }
-            if (entity.isPedestrianExplicitlyAllowed()) {
+            boolean noFootTag = (!entity.isPedestrianExplicitlyAllowed() && !entity.isPedestrianExplicitlyDenied());
+            if (entity.isPedestrianExplicitlyAllowed() || noFootTag) {
                 permission = permission.add(StreetTraversalPermission.PEDESTRIAN);
             }
         } else {
