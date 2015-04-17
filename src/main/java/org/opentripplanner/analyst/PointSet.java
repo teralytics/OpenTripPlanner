@@ -47,8 +47,13 @@ public class PointSet implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(PointSet.class);
 
+    /** A server-unique identifier for this PointSet */
     public String id;
+
+    /** A short description of this PointSet for use in a legend or menu */
     public String label;
+
+    /** A detailed textual description of this PointSet */
     public String description;
 
     public Map<String, PropertyMetadata> propMetadata = new HashMap<String, PropertyMetadata>();
@@ -59,12 +64,12 @@ public class PointSet implements Serializable {
     /*
      * Connects this population to vertices in a given Graph (map of graph ids
      * to sample sets). Keeping as a graphId->sampleSet map to prevent
-     * duplication of pointset when used across multiple graphs
+     * duplication of pointset when used across multiple graphs.
      */
     private Map<String, SampleSet> samples = new ConcurrentHashMap<String, SampleSet>();
     
     /**
-     * Map from string IDs to indices. This is a view into PointSet.ids.
+     * Map from string IDs to their array indices. This is a view into PointSet.ids, namely its reverse mapping.
      */
     private transient TObjectIntMap<String> idIndexMap;
 
@@ -76,17 +81,24 @@ public class PointSet implements Serializable {
     /*
      * In a detailed Indicator, the time to reach each target, for each origin.
      * Null in non-indicator pointsets.
+     * TODO remove this if unused, result sets are no longer PointSets.
      */
     public int[][] times;
 
-    /**
-     * The geometries of the features. Each Attribute must contain an array of
-     * magnitudes with the same length as this list.
-     */
+    // The characteristics of the features in this PointSet. This is a column store.
+    // Each structured attribute must also contain an array of magnitudes with the same length as these arrays.
+
+    /** A unique identifier for each feature. */
     protected String[] ids;
+
+    /** The latitude of each feature (or its centroid if it's not a point). */
     protected double[] lats;
+
+    /** The longitude of each feature (or its centroid if it's not a point). */
     protected double[] lons;
-    protected Polygon[] polygons;
+
+    /** The polygon for each feature (which is reduced to a centroid point for routing purposes). */
+    protected Polygon[] polygons; // TODO what do we do when there are no polygons?
 
     /**
      * Rather than trying to load anything any everything, we stick to a strict
@@ -105,8 +117,7 @@ public class PointSet implements Serializable {
                 return null;
             }
         }
-        // getCurrentRecord is zero-based and does not include headers or blank
-        // lines.
+        // getCurrentRecord is zero-based and does not include headers or blank lines
         int nRecs = (int) reader.getCurrentRecord() + 1;
         reader.close();
         /* If we reached here, the file is entirely readable. Start over. */
@@ -158,7 +169,11 @@ public class PointSet implements Serializable {
         return ret;
     }
 
-    public static PointSet fromShapefile( File file ) throws IOException, NoSuchAuthorityCodeException, FactoryException, EmptyPolygonException, UnsupportedGeometryException {
+    public static PointSet fromShapefile(File file) throws NoSuchAuthorityCodeException, IOException, FactoryException, EmptyPolygonException, UnsupportedGeometryException {
+    	return fromShapefile(file, null, null);
+    }
+    
+    public static PointSet fromShapefile(File file, String originIDField, List<String> propertyFields) throws IOException, NoSuchAuthorityCodeException, FactoryException, EmptyPolygonException, UnsupportedGeometryException {
         if ( ! file.exists())
             throw new RuntimeException("Shapefile does not exist.");
 
@@ -173,7 +188,24 @@ public class PointSet implements Serializable {
         query.setCoordinateSystemReproject(WGS84);
         SimpleFeatureCollection featureCollection = featureSource.getFeatures(query);
 
+        // Set up fields based on first feature in collection
+        // This assumes that all features have the same set of properties, which I think is always the case for shapefiles
         SimpleFeatureIterator it = featureCollection.features();
+        SimpleFeature protoFt = it.next();
+        if (propertyFields == null) {
+        	propertyFields = new ArrayList<String>();
+        	// No property fields specified, so use all property fields
+        	for (Property p : protoFt.getProperties()) {
+        		propertyFields.add(p.getName().toString());
+        	}
+        	// If ID field is specified, don't use it as a property
+        	if (originIDField != null && propertyFields.contains(originIDField)) {
+        		propertyFields.remove(originIDField);
+        	}
+        }
+        
+        // Reset iterator
+        it = featureCollection.features();
 
         PointSet ret = new PointSet(featureCollection.size());
         int i=0;
@@ -183,33 +215,53 @@ public class PointSet implements Serializable {
 
             PointFeature ft = new PointFeature();
             ft.setGeom(geom);
+            
+            // Set feature's ID to the specified ID field, or to index if none is specified
+            if (originIDField == null) {
+            	ft.setId(Integer.toString(i));
+            } else {
+            	ft.setId(feature.getProperty(originIDField).getValue().toString());
+            }
+            
             for(Property prop : feature.getProperties() ){
-                Object binding = prop.getType().getBinding();
-
-                //attempt to coerce the prop's value into an integer
-                int val;
-                if(binding.equals(Integer.class)){
-                    val = (Integer)prop.getValue();
-                } else if(binding.equals(Long.class)){
-                    val = ((Long)prop.getValue()).intValue();
-                } else if(binding.equals(String.class)){
-                    try{
-                        val = Integer.parseInt((String)prop.getValue());
-                    } catch (NumberFormatException ex ){
-                        continue;
-                    }
-                } else {
-                    continue;
-                }
-
-                ft.addAttribute(prop.getName().toString(), val);
+            	String propName = prop.getName().toString();
+            	if (propertyFields.contains(propName)) {
+	                Object binding = prop.getType().getBinding();
+	
+	                //attempt to coerce the prop's value into an integer
+	                int val;
+	                if(binding.equals(Integer.class)){
+	                    val = (Integer)prop.getValue();
+	                } else if(binding.equals(Long.class)){
+	                    val = ((Long)prop.getValue()).intValue();
+	                } else if(binding.equals(String.class)){
+	                    try{
+	                        val = Integer.parseInt((String)prop.getValue());
+	                    } catch (NumberFormatException ex ){
+	                        continue;
+	                    }
+	                } else {
+	                	LOG.debug("Property {} of feature {} could not be interpreted as int, skipping", prop.getName().toString(), ft.getId());
+	                    continue;
+	                }
+	
+	                ft.addAttribute(propName, val);
+            	} else {
+            		LOG.debug("Property {} not requested; igoring", propName); 
+            	}
+            	
             }
 
             ret.addFeature(ft, i);
 
             i++;
         }
-
+        
+        ArrayList<String> IDlist = new ArrayList<String>();
+        for (String id : ret.ids) {
+        	IDlist.add(id);
+        }
+        LOG.debug("Created PointSet from shapefile with IDs {}", IDlist);
         return ret;
     }
 
@@ -232,6 +284,7 @@ public class PointSet implements Serializable {
 
     /**
      * Examines a JSON stream to see if it matches the expected OTPA format.
+     * TODO improve the level of detail of validation. Many files pass the validation and then crash the load function.
      * 
      * @return the number of features in the collection if it's valid, or -1 if
      *         it doesn't fit the OTPA format.
@@ -340,6 +393,7 @@ public class PointSet implements Serializable {
             }
         } catch (Exception ex) {
             LOG.error("GeoJSON parsing failure: {}", ex.toString());
+            ex.printStackTrace();
             return null;
         }
         return ret;
@@ -452,11 +506,8 @@ public class PointSet implements Serializable {
         for (Entry<String,Integer> ad : feat.getProperties().entrySet()) {
             String propId = ad.getKey();
             Integer propVal = ad.getValue();
-
             this.getOrCreatePropertyForId(propId);
             this.properties.get(propId)[index] = propVal;
-
-
         }
     }
 
@@ -467,7 +518,7 @@ public class PointSet implements Serializable {
             try {
                 ret.setGeom(polygons[index]);
             } catch (Exception e) {	
-                // The polygon is clean; this should never happen. We
+                // The polygon is known to be clean; this should never happen. We
                 // could pass the exception up but that'd just make the calling
                 // function deal with an exception that will never pop. So
                 // we'll make the compiler happy by catching it here silently.
@@ -505,11 +556,6 @@ public class PointSet implements Serializable {
     /**
      * Gets the Category object for the given ID, creating it if it doesn't
      * exist.
-     * 
-     * @param id
-     *            the id for the category alone, not the fully-specified
-     *            category:property.
-     * @return a Category with the given ID.
      */
     public PropertyMetadata getOrCreatePropertyForId(String id) {
         PropertyMetadata property = propMetadata.get(id);
@@ -534,8 +580,7 @@ public class PointSet implements Serializable {
      */
     public void writeJson(OutputStream out, Boolean forcePoints) {
         try {
-            JsonFactory jsonFactory = new JsonFactory(); // ObjectMapper.getJsonFactory()
-            // is better
+            JsonFactory jsonFactory = new JsonFactory(); // ObjectMapper.getJsonFactory() is better
             JsonGenerator jgen = jsonFactory.createGenerator(out);
             jgen.setCodec(new ObjectMapper());
             jgen.writeStartObject();
@@ -571,41 +616,25 @@ public class PointSet implements Serializable {
             if (description != null)
                 jgen.writeStringField("description", description);
 
-            // writes schema as a flat namespace with cat_id and
-            // cat_id:prop_id interleaved
-
             jgen.writeObjectFieldStart("schema");
             {
-
                 for (PropertyMetadata cat : this.propMetadata.values()) {
-
                     jgen.writeObjectFieldStart(cat.id);
                     {
                         if (cat.label != null)
                             jgen.writeStringField("label", cat.label);
-                        jgen.writeStringField("type", "Category");
-
                         if (cat.style != null && cat.style.attributes != null) {
-
                             jgen.writeObjectFieldStart("style");
                             {
-
                                 for (String styleKey : cat.style.attributes.keySet()) {
                                     jgen.writeStringField(styleKey, cat.style.attributes.get(styleKey));
                                 }
                             }
                             jgen.writeEndObject();
-
                         }
-
                     }
                     jgen.writeEndObject();
-
-                    // two-level hierarchy for now... could be extended
-                    // to recursively map
-                    // categories,sub-categories,attributes
                 }
-
             }
             jgen.writeEndObject();
         }
