@@ -28,6 +28,7 @@ import org.opentripplanner.graph_builder.annotation.Graphwide;
 import org.opentripplanner.graph_builder.annotation.ParkAndRideUnlinked;
 import org.opentripplanner.graph_builder.annotation.StreetCarSpeedZero;
 import org.opentripplanner.graph_builder.module.extra_elevation_data.ElevationPoint;
+import org.opentripplanner.graph_builder.services.DefaultPublicTransitEdgeFactory;
 import org.opentripplanner.graph_builder.services.DefaultStreetEdgeFactory;
 import org.opentripplanner.graph_builder.services.GraphBuilderModule;
 import org.opentripplanner.graph_builder.services.StreetEdgeFactory;
@@ -102,6 +103,8 @@ public class OpenStreetMapModule implements GraphBuilderModule {
      * around.
      */
     public StreetEdgeFactory edgeFactory = new DefaultStreetEdgeFactory();
+
+    public DefaultPublicTransitEdgeFactory ptEdgeFactory = new DefaultPublicTransitEdgeFactory();
 
     /**
      * Whether bike rental stations should be loaded from OSM, rather than periodically dynamically pulled from APIs. (default false)
@@ -1067,6 +1070,48 @@ public class OpenStreetMapModule implements GraphBuilderModule {
             }
 
             return street;
+        }
+
+        /**
+         * Creates graph edges for public transport (rail, tram, subway)
+         */
+        private P2<PublicTransitEdge> getEdgesForPT(IntersectionVertex start, IntersectionVertex end,
+                                                    OSMWay way, int index, long startNode, long endNode,
+                                                    LineString geometry) {
+            LineString backGeometry = (LineString) geometry.reverse();
+            PublicTransitEdge street = null, backStreet = null;
+            double length = this.getGeometryLengthMeters(geometry);
+
+            String label = "way " + way.getId() + " from " + index;
+            label = unique(label);
+            String name = getNameForWay(way, label).toString();
+
+            TraverseMode ptype = way.getPublicTransitType();
+            if (!ptype.isTransit()) {
+                LOG.warn("Way {} has unknown railway: {}", way.getId(), way.getTag("railway"));
+            }
+
+            street = ptEdgeFactory.createEdge(0, start, end, geometry, name, length, ptype, false, way.getId());
+            int fwdId = street == null ? 0 : street.getId();
+            
+            OSMLevel level = osmdb.getLevelForWay(way);
+            street.setLevel(level);
+            /*if (customNamer != null) {
+                customNamer.nameWithEdge(way, street);
+            }*/
+            //Gondolas and one way streets are one directional
+            //TODO: correct oneway handling
+            if (ptype != TraverseMode.GONDOLA || !way.isTag("oneway", "yes")) {
+                backStreet = ptEdgeFactory.createEdge(fwdId, end, start, backGeometry, name, length, ptype, true, way.getId());
+                backStreet.setLevel(level);
+            }
+
+            if (street != null && backStreet != null) {
+                backStreet.shareData(street);
+            }
+
+            return new P2<PublicTransitEdge>(street, backStreet);
+
         }
 
         // TODO Set this to private once WalkableAreaBuilder is gone
