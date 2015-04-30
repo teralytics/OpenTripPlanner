@@ -17,12 +17,9 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.common.TurnRestriction;
 import org.opentripplanner.common.TurnRestrictionType;
-import org.opentripplanner.common.geometry.CompactLineString;
-import org.opentripplanner.common.geometry.DirectionUtils;
-import org.opentripplanner.common.geometry.GeometryUtils;
-import org.opentripplanner.common.geometry.PackedCoordinateSequence;
-import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
+import org.opentripplanner.common.geometry.*;
 import org.opentripplanner.common.model.P2;
+import org.opentripplanner.openstreetmap.model.OSMLevel;
 import org.opentripplanner.routing.core.*;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
@@ -31,6 +28,8 @@ import org.opentripplanner.routing.vertextype.IntersectionVertex;
 import org.opentripplanner.routing.vertextype.SplitterVertex;
 import org.opentripplanner.routing.vertextype.StreetVertex;
 import org.opentripplanner.util.BitSetUtils;
+import org.opentripplanner.util.I18NString;
+import org.opentripplanner.util.NonLocalizedString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +38,6 @@ import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import org.opentripplanner.util.I18NString;
-import org.opentripplanner.util.NonLocalizedString;
 
 /**
  * This represents a street segment.
@@ -48,7 +45,7 @@ import org.opentripplanner.util.NonLocalizedString;
  * @author novalis
  * 
  */
-public class StreetEdge extends Edge implements Cloneable {
+public class StreetEdge extends Edge implements Cloneable, EdgeInfo {
 
     private static Logger LOG = LoggerFactory.getLogger(StreetEdge.class);
 
@@ -108,6 +105,11 @@ public class StreetEdge extends Edge implements Cloneable {
      * this street segment.
      */
     private float carSpeed;
+
+    private int floorNumber;
+    private boolean reliableLevel;
+    private boolean hasLevel = false;
+
 
     /**
      * The angle at the start of the edge geometry.
@@ -573,6 +575,37 @@ public class StreetEdge extends Edge implements Cloneable {
         return true;
     }
 
+    @Override
+    public void setLevel(OSMLevel level) {
+        floorNumber = level.floorNumber;
+        reliableLevel = level.reliable;
+        hasLevel = true;
+    }
+
+    @Override
+    public String getNiceLevel() {
+        if (!hasLevel) {
+            return "";
+        } else {
+            return Integer.toString(floorNumber) + " [" + Boolean.toString(reliableLevel) + "]";
+        }
+    }
+
+    @Override
+    public Integer getLevel() {
+        return floorNumber;
+    }
+
+    @Override
+    public Boolean isReliableLevel() {
+        return reliableLevel;
+    }
+
+    @Override
+    public TraverseMode getPublicTransitType() {
+        return TraverseMode.BUS;
+    }
+    
 	@Override
 	public String getName() {
 		return this.name.toString();
@@ -599,7 +632,7 @@ public class StreetEdge extends Edge implements Cloneable {
 	}
 
 	private void setGeometry(LineString geometry) {
-		this.compactGeometry = CompactLineString.compactLineString(fromv.getLon(), fromv.getLat(), tov.getLon(), tov.getLat(), isBack() ? (LineString)geometry.reverse() : geometry, isBack());
+		this.compactGeometry = CompactLineString.compactLineString(fromv.getLon(), fromv.getLat(), tov.getLon(), tov.getLat(), isBack() ? (LineString) geometry.reverse() : geometry, isBack());
 	}
 
 	public void shareData(StreetEdge reversedEdge) {
