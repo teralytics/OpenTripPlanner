@@ -635,14 +635,17 @@ public class OpenStreetMapModule implements GraphBuilderModule {
                             elevationData.put(endEndpoint, elevation);
                         }
                     }
-                    P2<StreetEdge> streets = getEdgesForStreet(startEndpoint, endEndpoint,
-                            way, i, osmStartNode.getId(), osmEndNode.getId(), permissions, geometry);
-
-                    StreetEdge street = streets.first;
-                    StreetEdge backStreet = streets.second;
-                    applyWayProperties(street, backStreet, wayData, way);
-
-                    applyEdgesToTurnRestrictions(way, startNode, endNode, street, backStreet);
+                    if (way.isPublicTransport() && !OSMFilter.isWayRoutable(way)) {
+                        P2<PublicTransitEdge> streets = getEdgesForPT(startEndpoint, endEndpoint,
+                                way, i, osmStartNode.getId(), osmEndNode.getId(), geometry);
+                    } else {
+                        P2<StreetEdge> streets = getEdgesForStreet(startEndpoint, endEndpoint,
+                                way, i, osmStartNode.getId(), osmEndNode.getId(), permissions, geometry);
+                        StreetEdge street = streets.first;
+                        StreetEdge backStreet = streets.second;
+                        applyWayProperties(street, backStreet, wayData, way);
+                        applyEdgesToTurnRestrictions(way, startNode, endNode, street, backStreet);
+                    }
                     startNode = endNode;
                     osmStartNode = osmdb.getNode(startNode);
                 }
@@ -1068,6 +1071,9 @@ public class OpenStreetMapModule implements GraphBuilderModule {
             if (customNamer != null) {
                 customNamer.nameWithEdge(way, street);
             }
+
+            OSMLevel level = osmdb.getLevelForWay(way);
+            street.setLevel(level);
 
             return street;
         }
