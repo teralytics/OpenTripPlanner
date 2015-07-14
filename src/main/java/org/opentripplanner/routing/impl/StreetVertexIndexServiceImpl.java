@@ -14,15 +14,12 @@
 package org.opentripplanner.routing.impl;
 
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.Set;
-
+import com.google.common.collect.Iterables;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.index.SpatialIndex;
+import com.vividsolutions.jts.index.strtree.STRtree;
 import org.opentripplanner.common.geometry.DistanceLibrary;
 import org.opentripplanner.common.geometry.HashGridSpatialIndex;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
@@ -43,12 +40,7 @@ import org.opentripplanner.routing.vertextype.TransitStop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.index.SpatialIndex;
-import com.vividsolutions.jts.index.strtree.STRtree;
+import java.util.*;
 
 /**
  * Indexes all edges and transit vertices of the graph spatially. Has a variety of query methods used during network linking and trip planning.
@@ -77,7 +69,8 @@ public class StreetVertexIndexServiceImpl implements StreetVertexIndexService {
     /* all distance constants here are plate-carée Euclidean, 0.001 ~= 100m at equator */
 
     // Edges will only be found if they are closer than this distance
-    public static final double MAX_DISTANCE_FROM_STREET = 0.01000;
+    private double maxDistanceFromStreet = 0.01000;
+    private double searchGrowth = 0.001;
 
     // Maximum difference in distance for two geometries to be considered coincident
     public static final double DISTANCE_ERROR = 0.000001;
@@ -348,14 +341,13 @@ public class StreetVertexIndexServiceImpl implements StreetVertexIndexService {
                     extraStreets);
         }
 
-        double envelopeGrowthAmount = 0.001; // ~= 100 meters
         double radius = 0;
         CandidateEdgeBundle candidateEdges = new CandidateEdgeBundle();
         while (candidateEdges.size() == 0) {
             // expand envelope -- assumes many close searches and occasional far ones
-            envelope.expandBy(envelopeGrowthAmount);
-            radius += envelopeGrowthAmount;
-            if (radius > MAX_DISTANCE_FROM_STREET) {
+            envelope.expandBy(searchGrowth);
+            radius += searchGrowth;
+            if (radius > maxDistanceFromStreet) {
                 return candidateEdges; // empty list
             }
 
@@ -504,5 +496,13 @@ public class StreetVertexIndexServiceImpl implements StreetVertexIndexService {
     @Override
     public String toString() {
         return getClass().getName() + " -- edgeTree: " + edgeTree.toString() + " -- verticesTree: " + verticesTree.toString();
+    }
+
+    public void setMaxDistanceFromStreet(double maxDistanceFromStreet) {
+        this.maxDistanceFromStreet = maxDistanceFromStreet;
+    }
+
+    public void setSearchGrowth(double searchGrowth) {
+        this.searchGrowth = searchGrowth;
     }
 }

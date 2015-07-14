@@ -59,8 +59,8 @@ public class StaticStreetNotesSource implements StreetNotesSource, Serializable 
     }
 
     void addNote(Edge edge, Alert note, NoteMatcher matcher) {
-        if (LOG.isDebugEnabled())
-            LOG.debug("Adding note {} to {} with matcher {}", note, edge, matcher);
+//        if (LOG.isDebugEnabled())
+//            LOG.debug("Adding note {} to {} with matcher {}", note, edge, matcher);
         notesForEdge.put(edge, buildMatcherAndAlert(matcher, note));
     }
 

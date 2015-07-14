@@ -14,6 +14,8 @@
 package org.opentripplanner.routing.edgetype;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.LineString;
+import org.opentripplanner.common.geometry.CompactLineString;
 import org.opentripplanner.common.geometry.DirectionUtils;
 import org.opentripplanner.openstreetmap.model.OSMLevel;
 import org.opentripplanner.routing.core.State;
@@ -22,10 +24,8 @@ import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.vertextype.StreetVertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Arrays;
 
-import com.vividsolutions.jts.geom.LineString;
-import org.opentripplanner.common.geometry.CompactLineString;
+import java.util.Arrays;
 
 /**
  * This represents train/tram/subway edges
@@ -164,6 +164,20 @@ public class PublicTransitEdge extends Edge implements EdgeInfo {
 
     public TraverseMode getPublicTransitType() {
         return publicTransitType;
+    }
+    
+    public int getClassId() {
+        switch (publicTransitType) {
+            case RAIL: return 101;
+            case BUS: return 102;
+            case CAR: return 103;
+            case GONDOLA: return 104;
+            case SUBWAY: return 105;
+            case TRAM: return 106;
+            case WALK: return 107;
+            case FERRY: return 108;
+            default: return 100;
+        }
     }
 
     public void setPublicTransitType(TraverseMode publicTransitType) {
