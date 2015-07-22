@@ -184,6 +184,27 @@ public abstract class Vertex implements Serializable, Cloneable {
     }
 
     /**
+     * Clear this vertex's outgoing and incoming edge lists, and remove all the edges
+     * they contained from this vertex's neighbors.
+     */
+    public void removeAllEdges() {
+        for (Edge e : outgoing) {
+            Vertex target = e.getToVertex();
+            if (target != null) {
+                target.removeIncoming(e);
+            }
+        }
+        for (Edge e : incoming) {
+            Vertex source = e.getFromVertex();
+            if (source != null) {
+                source.removeOutgoing(e);
+            }
+        }
+        incoming = new Edge[0];
+        outgoing = new Edge[0];
+    }
+
+    /**
      * Get a collection containing all the edges leading from this vertex to other vertices.
      * There is probably some overhead to creating the wrapper ArrayList objects, but this
      * allows filtering and combining edge lists using stock Collection-based methods.
