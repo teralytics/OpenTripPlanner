@@ -71,15 +71,10 @@ public class BusRouteStreetMatcher implements GraphBuilderModule {
             for (TripPattern pattern : graph.index.patternsForRoute.get(route)) {
                 if (pattern.mode == TraverseMode.BUS) {
                     /* we can only match geometry to streets on bus routes */
-                    log.debug("Matching {}", pattern);
-                    //If there are no shapes in GTFS pattern geometry is generated
-                    //generated geometry is useless for street matching
-                    //that is why pattern.geometry is null in that case
-                    if (pattern.geometry == null) {
-                        continue;
-                    }
-                    List<Edge> edges = matcher.match(pattern.geometry);
-                    if (edges == null || edges.isEmpty()) {
+                    // FIXME patterns do not have geometries generated, so this can't work
+                    log.debug("Matching {} ncoords={}", pattern, pattern.geometry.getNumPoints());
+                    List<Edge> edges = matcher.match(pattern.geometry, pattern.mode);
+                    if (edges == null) {
                         log.warn("Could not match to street network: {}", pattern);
                         continue;
                     }
