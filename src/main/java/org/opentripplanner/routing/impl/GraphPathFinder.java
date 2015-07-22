@@ -16,12 +16,6 @@ package org.opentripplanner.routing.impl;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.onebusaway.gtfs.model.AgencyAndId;
-import static org.opentripplanner.routing.automata.Nonterminal.choice;
-import static org.opentripplanner.routing.automata.Nonterminal.optional;
-import static org.opentripplanner.routing.automata.Nonterminal.plus;
-import static org.opentripplanner.routing.automata.Nonterminal.seq;
-import static org.opentripplanner.routing.automata.Nonterminal.star;
-
 import org.opentripplanner.common.model.GenericLocation;
 import org.opentripplanner.routing.algorithm.AStar;
 import org.opentripplanner.routing.algorithm.strategies.EuclideanRemainingWeightHeuristic;
@@ -36,7 +30,6 @@ import org.opentripplanner.routing.edgetype.*;
 import org.opentripplanner.routing.error.PathNotFoundException;
 import org.opentripplanner.routing.error.VertexNotFoundException;
 import org.opentripplanner.routing.graph.Edge;
-import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.pathparser.PathParser;
 import org.opentripplanner.routing.spt.DominanceFunction;
@@ -48,6 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+
+import static org.opentripplanner.routing.automata.Nonterminal.*;
 
 /**
  * This class contains the logic for repeatedly building shortest path trees and accumulating paths through
@@ -84,13 +79,17 @@ public class GraphPathFinder {
 
     // Timeout in seconds relative to initial search begin time, for each new path found (generally decreasing)
 
+    public List<GraphPath> getPaths(RoutingRequest options) {
+        return getPaths(options, null, null, true);
+    }
+
     /**
      * Repeatedly build shortest path trees, retaining the best path to the destination after each try.
      * For search N, all trips used in itineraries retained from trips 0..(N-1) are "banned" to create variety.
      * The goal direction heuristic is reused between tries, which means the later tries have more information to
      * work with (in the case of the more sophisticated bidirectional heuristic, which improves over time).
      */
-    public List<GraphPath> getPaths(RoutingRequest options) {
+    public List<GraphPath> getPaths(RoutingRequest options, ShortestPathTree batchSpt, Vertex dst, boolean optimize) {
 
         if (options == null) {
             LOG.error("PathService was passed a null routing request.");
@@ -147,6 +146,7 @@ public class GraphPathFinder {
         LOG.debug("BEGIN SEARCH");
         List<GraphPath> paths = Lists.newArrayList();
         Set<AgencyAndId> bannedTrips = Sets.newHashSet();
+        ShortestPathTree spt;
         while (paths.size() < options.numItineraries) {
             // TODO pull all this timeout logic into a function near org.opentripplanner.util.DateUtils.absoluteTimeout()
             int timeoutIndex = paths.size();
@@ -162,7 +162,7 @@ public class GraphPathFinder {
                 options.rctx.aborted = true;
                 break;
             }
-            ShortestPathTree spt = aStar.getShortestPathTree(options, timeout);
+            spt = (batchSpt == null) ? aStar.getShortestPathTree(options, timeout) : batchSpt;
             if (spt == null) {
                 LOG.warn("SPT was null."); // unknown failure
                 return null;
@@ -170,7 +170,8 @@ public class GraphPathFinder {
             if (options.rctx.aborted) {
                 break; // search timed out or was gracefully aborted for some other reason.
             }
-            List<GraphPath> newPaths = spt.getPaths();
+            Vertex target = dst == null ? options.getRoutingContext().target : dst;
+            List<GraphPath> newPaths = spt.getPaths(target, optimize);
             if (newPaths.isEmpty()) {
                 break;
             }
