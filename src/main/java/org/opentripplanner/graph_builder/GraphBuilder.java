@@ -16,12 +16,7 @@ package org.opentripplanner.graph_builder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import org.opentripplanner.graph_builder.model.GtfsBundle;
-import org.opentripplanner.graph_builder.module.DirectTransferGenerator;
-import org.opentripplanner.graph_builder.module.EmbedConfig;
-import org.opentripplanner.graph_builder.module.GtfsModule;
-import org.opentripplanner.graph_builder.module.PruneFloatingIslands;
-import org.opentripplanner.graph_builder.module.StreetLinkerModule;
-import org.opentripplanner.graph_builder.module.TransitToTaggedStopsModule;
+import org.opentripplanner.graph_builder.module.*;
 import org.opentripplanner.graph_builder.module.map.BusRouteStreetMatcher;
 import org.opentripplanner.graph_builder.module.ned.DegreeGridNEDTileSource;
 import org.opentripplanner.graph_builder.module.ned.ElevationModule;
@@ -38,11 +33,7 @@ import org.opentripplanner.reflect.ReflectionLibrary;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Graph.LoadLevel;
-import org.opentripplanner.standalone.CommandLineParameters;
-import org.opentripplanner.standalone.GraphBuilderParameters;
-import org.opentripplanner.standalone.OTPMain;
-import org.opentripplanner.standalone.Router;
-import org.opentripplanner.standalone.S3BucketConfig;
+import org.opentripplanner.standalone.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,6 +166,10 @@ public class GraphBuilder implements Runnable {
     }
 
 
+    public static GraphBuilder forDirectory(CommandLineParameters params, File dir) {
+        return forDirectory(params, dir, null);
+    }
+    
     /**
      * Factory method to create and configure a GraphBuilder with all the appropriate modules to build a graph from
      * the files in the given directory, accounting for any configuration files located there.
@@ -182,7 +177,7 @@ public class GraphBuilder implements Runnable {
      * TODO parameterize with the router ID and call repeatedly to make multiple builders
      * note of all command line options this is only using  params.inMemory params.preFlight and params.build directory
      */
-    public static GraphBuilder forDirectory(CommandLineParameters params, File dir) {
+    public static GraphBuilder forDirectory(CommandLineParameters params, File dir, com.vividsolutions.jts.geom.Geometry region) {
         LOG.info("Wiring up and configuring graph builder task.");
         GraphBuilder graphBuilder = new GraphBuilder();
         List<File> gtfsFiles = Lists.newArrayList();
@@ -236,7 +231,7 @@ public class GraphBuilder implements Runnable {
                 OpenStreetMapProvider osmProvider = new AnyFileBasedOpenStreetMapProviderImpl(osmFile);
                 osmProviders.add(osmProvider);
             }
-            OpenStreetMapModule osmModule = new OpenStreetMapModule(osmProviders);
+            OpenStreetMapModule osmModule = new OpenStreetMapModule(osmProviders, region);
             DefaultStreetEdgeFactory streetEdgeFactory = new DefaultStreetEdgeFactory();
             streetEdgeFactory.useElevationData = builderParams.fetchElevationUS || (demFile != null);
             osmModule.edgeFactory = streetEdgeFactory;

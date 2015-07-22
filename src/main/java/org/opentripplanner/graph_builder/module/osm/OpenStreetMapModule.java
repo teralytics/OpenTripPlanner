@@ -72,6 +72,8 @@ public class OpenStreetMapModule implements GraphBuilderModule {
     private HashMap<Vertex, Double> elevationData = new HashMap<Vertex, Double>();
 
     public boolean skipVisibility = false;
+    
+    private Geometry region;
 
     // Members that can be set by clients.
 
@@ -152,8 +154,9 @@ public class OpenStreetMapModule implements GraphBuilderModule {
     /**
      * Construct and set providers all at once.
      */
-    public OpenStreetMapModule(List<OpenStreetMapProvider> providers) {
+    public OpenStreetMapModule(List<OpenStreetMapProvider> providers, Geometry region) {
         this.setProviders(providers);
+        this.region = region;
     }
 
     public OpenStreetMapModule() {
@@ -161,7 +164,7 @@ public class OpenStreetMapModule implements GraphBuilderModule {
 
     @Override
     public void buildGraph(Graph graph, HashMap<Class<?>, Object> extra) {
-        OSMDatabase osmdb = new OSMDatabase();
+        OSMDatabase osmdb = new OSMDatabase(region);
         Handler handler = new Handler(graph, osmdb);
         for (OpenStreetMapProvider provider : _providers) {
             LOG.info("Gathering OSM from provider: " + provider);
