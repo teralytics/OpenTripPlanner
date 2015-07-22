@@ -14,9 +14,9 @@
 package org.opentripplanner.routing.edgetype;
 
 import com.vividsolutions.jts.geom.LineString;
+import org.opentripplanner.routing.vertextype.IntersectionVertex;
 import org.opentripplanner.util.I18NString;
 import org.opentripplanner.util.NonLocalizedString;
-import org.opentripplanner.routing.vertextype.IntersectionVertex;
 
 
 public class AreaEdge extends StreetWithElevationEdge implements EdgeWithCleanup {
@@ -26,6 +26,12 @@ public class AreaEdge extends StreetWithElevationEdge implements EdgeWithCleanup
     public AreaEdge(IntersectionVertex startEndpoint, IntersectionVertex endEndpoint,
             LineString geometry, I18NString name, double length, StreetTraversalPermission permissions,
             boolean back, AreaEdgeList area) {
+        this(0, -1L, startEndpoint, endEndpoint, geometry, name, length, permissions, back, area);
+    }
+
+    public AreaEdge(int id, long osmId, IntersectionVertex startEndpoint, IntersectionVertex endEndpoint,
+                    LineString geometry, I18NString name, double length, StreetTraversalPermission permissions,
+                    boolean back, AreaEdgeList area) {
         super(startEndpoint, endEndpoint, geometry, name, length, permissions, back);
         this.area = area;
         area.addEdge(this);

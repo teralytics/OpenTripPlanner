@@ -13,13 +13,12 @@
 
 package org.opentripplanner.routing.edgetype;
 
+import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.common.geometry.CompactElevationProfile;
 import org.opentripplanner.common.geometry.PackedCoordinateSequence;
 import org.opentripplanner.routing.util.ElevationUtils;
 import org.opentripplanner.routing.util.SlopeCosts;
 import org.opentripplanner.routing.vertextype.StreetVertex;
-
-import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.util.I18NString;
 import org.opentripplanner.util.NonLocalizedString;
 
@@ -44,12 +43,17 @@ public class StreetWithElevationEdge extends StreetEdge {
 
     public StreetWithElevationEdge(StreetVertex v1, StreetVertex v2, LineString geometry,
             I18NString name, double length, StreetTraversalPermission permission, boolean back) {
-        super(v1, v2, geometry, name, length, permission, back);
+        this(0, -1L, v1, v2, geometry, name, length, permission, back);
+    }
+
+    public StreetWithElevationEdge(int id, long osmId, StreetVertex v1, StreetVertex v2, LineString geometry,
+                                   I18NString name, double length, StreetTraversalPermission permission, boolean back) {
+        super(id, osmId, v1, v2, geometry, name, length, permission, back);
     }
 
     public StreetWithElevationEdge(StreetVertex v1, StreetVertex v2, LineString geometry,
             String name, double length, StreetTraversalPermission permission, boolean back) {
-        super(v1, v2, geometry, new NonLocalizedString(name), length, permission, back);
+        this(0, -1L, v1, v2, geometry, new NonLocalizedString(name), length, permission, back);
     }
 
     @Override
