@@ -69,11 +69,6 @@ public class GraphBuilderParameters {
     public final boolean areaVisibility;
 
     /**
-     * Based on GTFS shape data, guess which OSM streets each bus runs on to improve stop linking.
-     */
-    public final boolean matchBusRoutesToStreets;
-
-    /**
      * Download US NED elevation data and apply it to the graph.
      */
     public final boolean fetchElevationUS;
@@ -123,7 +118,6 @@ public class GraphBuilderParameters {
         streets = config.path("streets").asBoolean(true);
         embedRouterConfig = config.path("embedRouterConfig").asBoolean(true);
         areaVisibility = config.path("areaVisibility").asBoolean(false);
-        matchBusRoutesToStreets = config.path("matchBusRoutesToStreets").asBoolean(false);
         fetchElevationUS = config.path("fetchElevationUS").asBoolean(false);
         elevationBucket = S3BucketConfig.fromConfig(config.path("elevationBucket"));
         fareServiceFactory = DefaultFareServiceFactory.fromConfig(config.path("fares"));

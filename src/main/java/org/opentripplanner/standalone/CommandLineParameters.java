@@ -135,6 +135,9 @@ public class CommandLineParameters implements Cloneable {
     @Parameter(names = { "--enableScriptingWebService" }, description = "enable scripting through a web-service (Warning! Very unsafe for public facing servers)")
     boolean enableScriptingWebService = false;
 
+    @Parameter(names = { "--match" }, description = "Based on GTFS shape data, guess which OSM streets each bus runs on to improve stop linking.")
+    public boolean matchRoutesToStreets = false;
+
     /** Set some convenience parameters based on other parameters' values. */
     public void infer() {
         server |= (inMemory || preFlight || port != null);

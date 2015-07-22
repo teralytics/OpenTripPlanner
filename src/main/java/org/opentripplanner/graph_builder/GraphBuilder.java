@@ -261,7 +261,7 @@ public class GraphBuilder implements Runnable {
             gtfsModule.setFareServiceFactory(builderParams.fareServiceFactory);
             graphBuilder.addModule(gtfsModule);
             if ( hasOSM ) {
-                if (builderParams.matchBusRoutesToStreets) {
+                if (params.matchRoutesToStreets) {
                     graphBuilder.addModule(new BusRouteStreetMatcher());
                 }
                 graphBuilder.addModule(new TransitToTaggedStopsModule());

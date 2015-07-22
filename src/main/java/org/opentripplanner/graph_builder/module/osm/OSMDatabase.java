@@ -30,7 +30,9 @@ import org.opentripplanner.openstreetmap.services.OpenStreetMapContentHandler;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.edgetype.StreetTraversalPermission;
+import org.opentripplanner.util.I18NString;
 import org.opentripplanner.util.MapUtils;
+import org.opentripplanner.util.NonLocalizedString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -240,11 +242,11 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
         /* filter out ways that are not relevant for routing */
         //For now we keep PublicTransportEdges (railways, trams, subways) they are used for better linking
         if (!(OSMFilter.isWayRoutable(way) || way.isParkAndRide() || way.isBikeParking() || way.isPublicTransport())) {
-            String name = way.getAssumedName().toString();
+            I18NString name = way.getAssumedName();
             if (name == null) {
-                name = way.toString();
+                name = new NonLocalizedString(way.toString());
             } else {
-                name = way.toString() + name;
+                name = new NonLocalizedString(way.toString() + name);
             }
             if (way.hasTag("railway")) {
                 LOG.info("Skipped railway: {} ({})", name, way.getTag("railway"));
