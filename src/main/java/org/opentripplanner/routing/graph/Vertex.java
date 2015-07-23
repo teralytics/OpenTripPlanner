@@ -259,7 +259,7 @@ public abstract class Vertex implements Serializable, Cloneable {
      * in provided localization
      * @param locale wanted localization */
     public String getName(Locale locale) {
-        return this.name.toString(locale);
+        return this.name == null ? null : this.name.toString(locale);
     }
 
     /* FIELD ACCESSOR METHODS : READ ONLY */

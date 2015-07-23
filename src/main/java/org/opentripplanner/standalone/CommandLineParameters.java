@@ -56,6 +56,10 @@ public class CommandLineParameters implements Cloneable {
             description = "Build graphs at specified paths.", variableArity = true)
     public File build;
 
+    @Parameter(names = {"--read"},
+            description = "Filename to read serialized graph from in the build directory.")
+    public String read;
+
     @Parameter(names = {"--cache"}, validateWith = ReadWriteDirectory.class,
             description = "The directory under which to cache OSM and NED tiles. Default is BASE_PATH/cache.")
     public File cacheDirectory;

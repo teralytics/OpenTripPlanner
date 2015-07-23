@@ -110,7 +110,11 @@ public class OTPMain {
         if (params.build != null) {
             GraphBuilder graphBuilder = GraphBuilder.forDirectory(params, params.build); // TODO multiple directories
             if (graphBuilder != null) {
-                graphBuilder.run();
+                if (params.read != null) {
+                    graphBuilder.setBaseGraph(new File(params.build, params.read).getAbsolutePath());
+                } else {
+                    graphBuilder.run();
+                }
                 /* If requested, hand off the graph to the server as the default graph using an in-memory GraphSource. */
                 if (params.inMemory || params.preFlight) {
                     Graph graph = graphBuilder.getGraph();

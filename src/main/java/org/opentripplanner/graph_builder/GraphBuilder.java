@@ -182,6 +182,7 @@ public class GraphBuilder implements Runnable {
         GraphBuilder graphBuilder = new GraphBuilder();
         List<File> gtfsFiles = Lists.newArrayList();
         List<File> osmFiles =  Lists.newArrayList();
+        List<File> objFiles =  Lists.newArrayList();
         JsonNode builderConfig = null;
         JsonNode routerConfig = null;
         File demFile = null;
@@ -215,13 +216,18 @@ public class GraphBuilder implements Runnable {
                         LOG.info("Skipping DEM file {}", file);
                     }
                     break;
+                case GRAPH:
+                    LOG.info("Found OBJ graph file {}", file);
+                    objFiles.add(file);
+                    break;
                 case OTHER:
                     LOG.warn("Skipping unrecognized file '{}'", file);
             }
         }
         boolean hasOSM  = builderParams.streets && !osmFiles.isEmpty();
         boolean hasGTFS = builderParams.transit && !gtfsFiles.isEmpty();
-        if ( ! ( hasOSM || hasGTFS )) {
+        boolean hasGraph = params.read != null && !objFiles.isEmpty();
+        if ( ! ( hasOSM || hasGTFS || hasGraph )) {
             LOG.error("Found no input files from which to build a graph in {}", dir);
             return null;
         }
@@ -333,7 +339,7 @@ public class GraphBuilder implements Runnable {
             if (name.endsWith(".osm")) return OSM;
             if (name.endsWith(".osm.xml")) return OSM;
             if (name.endsWith(".tif") || name.endsWith(".tiff")) return DEM; // Digital elevation model (elevation raster)
-            if (name.equals("Graph.obj")) return GRAPH;
+            if (name.endsWith(".obj")) return GRAPH;
             if (name.equals(GraphBuilder.BUILDER_CONFIG_FILENAME) || name.equals(Router.ROUTER_CONFIG_FILENAME)) {
                 return CONFIG;
             }

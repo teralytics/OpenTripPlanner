@@ -21,12 +21,19 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
+import org.opentripplanner.analyst.core.Sample;
+import org.opentripplanner.analyst.request.SampleFactory;
 import org.opentripplanner.api.common.RoutingResource;
 import org.opentripplanner.api.model.TripPlan;
 import org.opentripplanner.api.model.error.PlannerError;
+import org.opentripplanner.routing.algorithm.AStar;
 import org.opentripplanner.routing.core.RoutingRequest;
+import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.impl.GraphPathFinder;
+import org.opentripplanner.routing.impl.RetryingPathServiceImpl;
 import org.opentripplanner.routing.spt.GraphPath;
+import org.opentripplanner.routing.spt.ShortestPathTree;
 import org.opentripplanner.standalone.OTPServer;
 import org.opentripplanner.standalone.Router;
 import org.slf4j.Logger;
@@ -64,19 +71,53 @@ public class PlannerResource extends RoutingResource {
         
         // Create response object, containing a copy of all request parameters. Maybe they should be in the debug section of the response.
         Response response = new Response(uriInfo);
-        RoutingRequest request = null;
+        RoutingRequest sptRequest = null;
         try {
 
             /* Fill in request fields from query parameters via shared superclass method, catching any errors. */
-            request = super.buildRequest();
+            sptRequest = super.buildRequest();
+            RoutingRequest pathsRequest = sptRequest.clone();
 
             /* Find some good GraphPaths through the OTP Graph. */
-            Router router = otpServer.getRouter(request.routerId);
+            Router router = otpServer.getRouter(sptRequest.routerId);
             GraphPathFinder gpFinder = new GraphPathFinder(router); // we could also get a persistent router-scoped GraphPathFinder but there's no setup cost here
-            List<GraphPath> paths = gpFinder.graphPathFinderEntryPoint(request);
+
+            SampleFactory sampleFactory = router.graph.getSampleFactory();
+            AStar aStar = new AStar();
+            
+            TraverseModeSet modes = new TraverseModeSet(
+                    TraverseMode.BUS,
+                    TraverseMode.RAIL,
+                    TraverseMode.FERRY,
+                    TraverseMode.TRAM,
+                    TraverseMode.SUBWAY,
+                    TraverseMode.GONDOLA,
+                    TraverseMode.WALK
+            );
+            
+            sptRequest.batch = true;
+            sptRequest.maxTransfers = 4;
+            pathsRequest.numItineraries = 3;
+            sptRequest.longDistance = false;
+            sptRequest.maxWalkDistance = 200;
+            sptRequest.setModes(modes);
+            sptRequest.setRoutingContext(router.graph);
+            ShortestPathTree batchSpt = aStar.getShortestPathTree(sptRequest, 6.5);
+
+            RetryingPathServiceImpl pathService = new RetryingPathServiceImpl(router, aStar);
+            Sample dst = sampleFactory.getSample(sptRequest.to.lng, sptRequest.to.lat);
+            pathsRequest.batch = false;
+            pathsRequest.numItineraries = 3;
+            pathsRequest.maxTransfers = 4;
+            pathsRequest.longDistance = true;
+            pathsRequest.maxWalkDistance = 200;
+            pathsRequest.setModes(modes);
+            pathsRequest.setRoutingContext(router.graph);
+            
+            List<GraphPath> paths = pathService.getPaths(pathsRequest, batchSpt, dst.v0, false);
 
             /* Convert the internal GraphPaths to a TripPlan object that is included in an OTP web service Response. */
-            TripPlan plan = GraphPathToTripPlanConverter.generatePlan(paths, request);
+            TripPlan plan = GraphPathToTripPlanConverter.generatePlan(paths, sptRequest);
             response.setPlan(plan);
 
         } catch (Exception e) {
@@ -85,11 +126,11 @@ public class PlannerResource extends RoutingResource {
                 LOG.warn("Error while planning path: ", e);
             response.setError(error);
         } finally {
-            if (request != null) {
-                if (request.rctx != null) {
-                    response.debugOutput = request.rctx.debugOutput;
+            if (sptRequest != null) {
+                if (sptRequest.rctx != null) {
+                    response.debugOutput = sptRequest.rctx.debugOutput;
                 }
-                request.cleanup(); // TODO verify that this cleanup step is being done on Analyst web services
+                sptRequest.cleanup(); // TODO verify that this cleanup step is being done on Analyst web services
             }       
         }
         return response;

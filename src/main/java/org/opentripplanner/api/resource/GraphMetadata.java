@@ -13,6 +13,7 @@
 
 package org.opentripplanner.api.resource;
 
+import com.google.common.base.Optional;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import org.opentripplanner.routing.core.TraverseMode;
@@ -25,7 +26,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.HashSet;
-import java.util.Optional;
 
 /**
  * GraphMetada is first created after OSM is build.
