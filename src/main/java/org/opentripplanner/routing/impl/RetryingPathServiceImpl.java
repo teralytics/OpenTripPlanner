@@ -1,7 +1,7 @@
 package org.opentripplanner.routing.impl;
 
 import org.onebusaway.gtfs.model.AgencyAndId;
-import org.opentripplanner.routing.algorithm.AStar;
+import org.opentripplanner.routing.algorithm.GenericAStar;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.pathparser.BasicPathParser;
@@ -25,9 +25,9 @@ public class RetryingPathServiceImpl {
     private static final double MAX_WALK_MULTIPLE = 16;
 
     private Router router;
-    private AStar astar;
+    private GenericAStar astar;
 
-    public RetryingPathServiceImpl(Router router, AStar astar) {
+    public RetryingPathServiceImpl(Router router, GenericAStar astar) {
         this.router = router;
         this.astar = astar;
     }

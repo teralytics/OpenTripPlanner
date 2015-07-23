@@ -27,6 +27,7 @@ import org.opentripplanner.api.common.RoutingResource;
 import org.opentripplanner.api.model.TripPlan;
 import org.opentripplanner.api.model.error.PlannerError;
 import org.opentripplanner.routing.algorithm.AStar;
+import org.opentripplanner.routing.algorithm.GenericAStar;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.TraverseModeSet;
@@ -83,7 +84,7 @@ public class PlannerResource extends RoutingResource {
             GraphPathFinder gpFinder = new GraphPathFinder(router); // we could also get a persistent router-scoped GraphPathFinder but there's no setup cost here
 
             SampleFactory sampleFactory = router.graph.getSampleFactory();
-            AStar aStar = new AStar();
+            GenericAStar aStar = new GenericAStar();
             
             TraverseModeSet modes = new TraverseModeSet(
                     TraverseMode.BUS,
@@ -98,11 +99,11 @@ public class PlannerResource extends RoutingResource {
             sptRequest.batch = true;
             sptRequest.maxTransfers = 4;
             pathsRequest.numItineraries = 3;
-            sptRequest.longDistance = false;
+            sptRequest.longDistance = true;
             sptRequest.maxWalkDistance = 200;
             sptRequest.setModes(modes);
             sptRequest.setRoutingContext(router.graph);
-            ShortestPathTree batchSpt = aStar.getShortestPathTree(sptRequest, 6.5);
+            ShortestPathTree batchSpt = aStar.getShortestPathTree(sptRequest, 1.5);
 
             RetryingPathServiceImpl pathService = new RetryingPathServiceImpl(router, aStar);
             Sample dst = sampleFactory.getSample(sptRequest.to.lng, sptRequest.to.lat);
