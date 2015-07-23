@@ -57,7 +57,11 @@ public class CommandLineParameters implements Cloneable {
     @Parameter(names = {"-b", "--build"}, validateWith = ReadableDirectory.class, 
     description = "build graphs at specified paths", variableArity = true)
     public List<File> build;
-    
+
+    @Parameter(names = {"--read"},
+            description = "read serialized graph with specified name in build dir")
+    public String read;
+
     @Parameter(names = { "-c", "--cache"}, validateWith = ReadWriteDirectory.class,
             description = "the directory under which to cache OSM and NED tiles")
     String cacheDirectory;
