@@ -147,4 +147,14 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
     @Override
     public void doSomeWork() {}
 
+    @Override
+    public double computeForwardWeight(State s, Vertex target) {
+        return 0;
+    }
+
+    @Override
+    public double computeReverseWeight(State s, Vertex target) {
+        return 0;
+    }
+
 }

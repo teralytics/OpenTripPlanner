@@ -858,4 +858,12 @@ public class State implements Cloneable {
     public double getOptimizedElapsedTimeSeconds() {
         return getElapsedTimeSeconds() - stateData.initialWaitTime;
     }
+
+    /**
+     * Returns true if this state's weight is lower than the other one. Considers only weight and
+     * not time or other criteria.
+     */
+    public boolean betterThan(State other) {
+        return this.weight < other.weight;
+    }
 }

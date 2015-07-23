@@ -24,6 +24,8 @@ import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.spt.ShortestPathTree;
+import org.opentripplanner.routing.spt.old.MultiShortestPathTree;
+import org.opentripplanner.routing.spt.old.WeightOnlyShortestPathTree;
 import org.opentripplanner.util.DateUtils;
 import org.opentripplanner.util.monitoring.MonitoringStore;
 import org.opentripplanner.util.monitoring.MonitoringStoreFactory;
@@ -96,9 +98,8 @@ public class GenericAStar { // maybe this should be wrapped in a component SPT s
         runState = new RunState( options, terminationStrategy );
         runState.rctx = options.getRoutingContext();
         // TODO this is a hackish way of communicating which mode we are in (since search mode is currently server-wide)
-//        runState.spt = options.longDistance ?
-//                new WeightOnlyShortestPathTree(runState.options) : new MultiShortestPathTree(runState.options);
-        runState.spt = options.getNewShortestPathTree();
+        runState.spt = options.longDistance ?
+                new WeightOnlyShortestPathTree(runState.options) : new MultiShortestPathTree(runState.options);
         runState.heuristic = options.batch ?
                 new TrivialRemainingWeightHeuristic() : runState.rctx.remainingWeightHeuristic;
 
@@ -185,8 +186,7 @@ public class GenericAStar { // maybe this should be wrapped in a component SPT s
                 // lbs.getWeightDelta(), v.getWeightDelta(), edge);
                 // }
 
-//                double remaining_w = computeRemainingWeight(runState.heuristic, v, runState.rctx.target, runState.options);
-                double remaining_w = runState.heuristic.estimateRemainingWeight(v);
+                double remaining_w = computeRemainingWeight(runState.heuristic, v, runState.rctx.target, runState.options);
                 if (remaining_w < 0 || Double.isInfinite(remaining_w) ) {
                     continue;
                 }
@@ -314,16 +314,16 @@ public class GenericAStar { // maybe this should be wrapped in a component SPT s
         }
     }
 
-//    private double computeRemainingWeight(final RemainingWeightHeuristic heuristic, State v,
-//                                          Vertex target, RoutingRequest options) {
-//        // actually, the heuristic could figure this out from the TraverseOptions.
-//        // set private member back=options.isArriveBy() on initial weight computation.
-//        if (options.arriveBy) {
-//            return heuristic.computeReverseWeight(v, target);
-//        } else {
-//            return heuristic.computeForwardWeight(v, target);
-//        }
-//    }
+    private double computeRemainingWeight(final RemainingWeightHeuristic heuristic, State v,
+                                          Vertex target, RoutingRequest options) {
+        // actually, the heuristic could figure this out from the TraverseOptions.
+        // set private member back=options.isArriveBy() on initial weight computation.
+        if (options.arriveBy) {
+            return heuristic.computeReverseWeight(v, target);
+        } else {
+            return heuristic.computeForwardWeight(v, target);
+        }
+    }
 
     private boolean isWorstTimeExceeded(State v, RoutingRequest opt) {
         if (opt.arriveBy)

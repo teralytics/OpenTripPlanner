@@ -46,6 +46,12 @@ public class ShortestPathTree {
 
     private Map<Vertex, List<State>> stateSets;
 
+    public ShortestPathTree (RoutingRequest options) {
+        this.options = options;
+        this.dominanceFunction = new DominanceFunction.MinimumWeight();
+        stateSets = new IdentityHashMap<Vertex, List<State>>();
+    }
+
     public ShortestPathTree (RoutingRequest options, DominanceFunction dominanceFunction) {
         this.options = options;
         this.dominanceFunction = dominanceFunction;

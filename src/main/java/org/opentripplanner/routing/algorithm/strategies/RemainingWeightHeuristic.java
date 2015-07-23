@@ -44,7 +44,11 @@ public interface RemainingWeightHeuristic extends Serializable {
      * estimate. Avoids thread synchronization evil by interleaving forward and backward searches. 
      */
     public void doSomeWork();
-    
+
+    public double computeForwardWeight(State s, Vertex target);
+
+    public double computeReverseWeight(State s, Vertex target);
+
 }
 
 
