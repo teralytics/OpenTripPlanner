@@ -45,10 +45,6 @@ public interface RemainingWeightHeuristic extends Serializable {
      */
     public void doSomeWork();
 
-    public double computeForwardWeight(State s, Vertex target);
-
-    public double computeReverseWeight(State s, Vertex target);
-
 }
 
 

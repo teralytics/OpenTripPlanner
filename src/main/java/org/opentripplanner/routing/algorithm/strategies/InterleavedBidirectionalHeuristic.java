@@ -329,20 +329,4 @@ public class InterleavedBidirectionalHeuristic implements RemainingWeightHeurist
         return stopStates;
     }
 
-    @Override
-    public double computeForwardWeight(State s, Vertex target) {
-        return 0;
-    }
-
-    /**
-     * We must return an underestimate of the cost to reach the destination no matter how much
-     * progress has been made on the heuristic search.
-     *
-     * All on-street vertices must be explored by the heuristic before the main search starts.
-     * This allows us to completely skip walking outside a certain radius of the origin/destination.
-     */
-    @Override
-    public double computeReverseWeight(State s, Vertex target) {
-        return 0;
-    }
 }

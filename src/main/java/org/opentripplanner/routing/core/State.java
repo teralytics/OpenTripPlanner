@@ -13,26 +13,22 @@
 
 package org.opentripplanner.routing.core;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Set;
-
 import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.Trip;
 import org.opentripplanner.routing.algorithm.NegativeWeightException;
 import org.opentripplanner.routing.automata.AutomatonState;
-import org.opentripplanner.routing.edgetype.OnboardEdge;
-import org.opentripplanner.routing.edgetype.TablePatternEdge;
-import org.opentripplanner.routing.edgetype.StreetEdge;
-import org.opentripplanner.routing.edgetype.TransitBoardAlight;
-import org.opentripplanner.routing.edgetype.TripPattern;
+import org.opentripplanner.routing.edgetype.*;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.pathparser.PathParser;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Set;
 
 public class State implements Cloneable {
     /* Data which is likely to change at most traversals */
@@ -857,13 +853,5 @@ public class State implements Cloneable {
 
     public double getOptimizedElapsedTimeSeconds() {
         return getElapsedTimeSeconds() - stateData.initialWaitTime;
-    }
-
-    /**
-     * Returns true if this state's weight is lower than the other one. Considers only weight and
-     * not time or other criteria.
-     */
-    public boolean betterThan(State other) {
-        return this.weight < other.weight;
     }
 }

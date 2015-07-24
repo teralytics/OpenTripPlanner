@@ -12,7 +12,16 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package org.opentripplanner.api.resource;
 
-import static org.opentripplanner.api.resource.ServerInfo.Q;
+import org.opentripplanner.api.common.RoutingResource;
+import org.opentripplanner.api.model.TripPlan;
+import org.opentripplanner.api.model.error.PlannerError;
+import org.opentripplanner.routing.core.RoutingRequest;
+import org.opentripplanner.routing.impl.GraphPathFinder;
+import org.opentripplanner.routing.spt.GraphPath;
+import org.opentripplanner.standalone.OTPServer;
+import org.opentripplanner.standalone.Router;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -20,27 +29,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
+import java.util.List;
 
-import org.opentripplanner.analyst.core.Sample;
-import org.opentripplanner.analyst.request.SampleFactory;
-import org.opentripplanner.api.common.RoutingResource;
-import org.opentripplanner.api.model.TripPlan;
-import org.opentripplanner.api.model.error.PlannerError;
-import org.opentripplanner.routing.algorithm.AStar;
-import org.opentripplanner.routing.algorithm.GenericAStar;
-import org.opentripplanner.routing.core.RoutingRequest;
-import org.opentripplanner.routing.core.TraverseMode;
-import org.opentripplanner.routing.core.TraverseModeSet;
-import org.opentripplanner.routing.impl.GraphPathFinder;
-import org.opentripplanner.routing.impl.RetryingPathServiceImpl;
-import org.opentripplanner.routing.spt.GraphPath;
-import org.opentripplanner.routing.spt.ShortestPathTree;
-import org.opentripplanner.standalone.OTPServer;
-import org.opentripplanner.standalone.Router;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
+import static org.opentripplanner.api.resource.ServerInfo.Q;
 
 /**
  * This is the primary entry point for the trip planning web service.
@@ -72,53 +63,54 @@ public class PlannerResource extends RoutingResource {
         
         // Create response object, containing a copy of all request parameters. Maybe they should be in the debug section of the response.
         Response response = new Response(uriInfo);
-        RoutingRequest sptRequest = null;
+        RoutingRequest request = null;
         try {
 
             /* Fill in request fields from query parameters via shared superclass method, catching any errors. */
-            sptRequest = super.buildRequest();
-            RoutingRequest pathsRequest = sptRequest.clone();
+            request = super.buildRequest();
 
             /* Find some good GraphPaths through the OTP Graph. */
-            Router router = otpServer.getRouter(sptRequest.routerId);
+            Router router = otpServer.getRouter(request.routerId);
             GraphPathFinder gpFinder = new GraphPathFinder(router); // we could also get a persistent router-scoped GraphPathFinder but there's no setup cost here
 
-            SampleFactory sampleFactory = router.graph.getSampleFactory();
-            GenericAStar aStar = new GenericAStar();
-            
-            TraverseModeSet modes = new TraverseModeSet(
-                    TraverseMode.BUS,
-                    TraverseMode.RAIL,
-                    TraverseMode.FERRY,
-                    TraverseMode.TRAM,
-                    TraverseMode.SUBWAY,
-                    TraverseMode.GONDOLA,
-                    TraverseMode.WALK
-            );
-            
-            sptRequest.batch = true;
-            sptRequest.maxTransfers = 4;
-            pathsRequest.numItineraries = 3;
-            sptRequest.longDistance = true;
-            sptRequest.maxWalkDistance = 200;
-            sptRequest.setModes(modes);
-            sptRequest.setRoutingContext(router.graph);
-            ShortestPathTree batchSpt = aStar.getShortestPathTree(sptRequest, 1.5);
-
-            RetryingPathServiceImpl pathService = new RetryingPathServiceImpl(router, aStar);
-            Sample dst = sampleFactory.getSample(sptRequest.to.lng, sptRequest.to.lat);
-            pathsRequest.batch = false;
-            pathsRequest.numItineraries = 3;
-            pathsRequest.maxTransfers = 4;
-            pathsRequest.longDistance = true;
-            pathsRequest.maxWalkDistance = 200;
-            pathsRequest.setModes(modes);
-            pathsRequest.setRoutingContext(router.graph);
-            
-            List<GraphPath> paths = pathService.getPaths(pathsRequest, batchSpt, dst.v0, false);
+//            RoutingRequest pathsRequest = request.clone();
+//            SampleFactory sampleFactory = router.graph.getSampleFactory();
+//            GenericAStar aStar = new GenericAStar();
+//
+//            TraverseModeSet modes = new TraverseModeSet(
+//                    TraverseMode.BUS,
+//                    TraverseMode.RAIL,
+//                    TraverseMode.FERRY,
+//                    TraverseMode.TRAM,
+//                    TraverseMode.SUBWAY,
+//                    TraverseMode.GONDOLA,
+//                    TraverseMode.WALK
+//            );
+//
+//            sptRequest.batch = true;
+//            sptRequest.maxTransfers = 4;
+//            pathsRequest.numItineraries = 3;
+//            sptRequest.longDistance = true;
+//            sptRequest.maxWalkDistance = 200;
+//            sptRequest.setModes(modes);
+//            sptRequest.setRoutingContext(router.graph);
+//            ShortestPathTree batchSpt = aStar.getShortestPathTree(sptRequest, 1.5);
+//
+//            RetryingPathServiceImpl pathService = new RetryingPathServiceImpl(router, aStar);
+//            Sample dst = sampleFactory.getSample(sptRequest.to.lng, sptRequest.to.lat);
+//            pathsRequest.batch = false;
+//            pathsRequest.numItineraries = 3;
+//            pathsRequest.maxTransfers = 4;
+//            pathsRequest.longDistance = true;
+//            pathsRequest.maxWalkDistance = 200;
+//            pathsRequest.setModes(modes);
+//            pathsRequest.setRoutingContext(router.graph);
+//
+//            List<GraphPath> paths = pathService.getPaths(pathsRequest, batchSpt, dst.v0, false);
+            List<GraphPath> paths = gpFinder.getPaths(request);
 
             /* Convert the internal GraphPaths to a TripPlan object that is included in an OTP web service Response. */
-            TripPlan plan = GraphPathToTripPlanConverter.generatePlan(paths, sptRequest);
+            TripPlan plan = GraphPathToTripPlanConverter.generatePlan(paths, request);
             response.setPlan(plan);
 
         } catch (Exception e) {
@@ -127,11 +119,11 @@ public class PlannerResource extends RoutingResource {
                 LOG.warn("Error while planning path: ", e);
             response.setError(error);
         } finally {
-            if (sptRequest != null) {
-                if (sptRequest.rctx != null) {
-                    response.debugOutput = sptRequest.rctx.debugOutput;
+            if (request != null) {
+                if (request.rctx != null) {
+                    response.debugOutput = request.rctx.debugOutput;
                 }
-                sptRequest.cleanup(); // TODO verify that this cleanup step is being done on Analyst web services
+                request.cleanup(); // TODO verify that this cleanup step is being done on Analyst web services
             }       
         }
         return response;
