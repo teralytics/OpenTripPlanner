@@ -20,8 +20,6 @@ import org.onebusaway.gtfs.model.Agency;
 import org.onebusaway.gtfs.model.Route;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.Trip;
-import org.opentripplanner.analyst.core.Sample;
-import org.opentripplanner.analyst.request.SampleFactory;
 import org.opentripplanner.api.model.*;
 import org.opentripplanner.common.geometry.DirectionUtils;
 import org.opentripplanner.common.geometry.GeometryUtils;
@@ -29,7 +27,6 @@ import org.opentripplanner.common.geometry.PackedCoordinateSequence;
 import org.opentripplanner.common.model.P2;
 import org.opentripplanner.routing.alertpatch.Alert;
 import org.opentripplanner.routing.alertpatch.AlertPatch;
-import org.opentripplanner.routing.algorithm.GenericAStar;
 import org.opentripplanner.routing.core.*;
 import org.opentripplanner.routing.edgetype.*;
 import org.opentripplanner.routing.error.PathNotFoundException;
@@ -38,15 +35,10 @@ import org.opentripplanner.routing.error.VertexNotFoundException;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
-import org.opentripplanner.routing.impl.GenericAStarFactory;
-import org.opentripplanner.routing.impl.RetryingPathServiceImpl;
-import org.opentripplanner.routing.impl.SPTServiceFactory;
 import org.opentripplanner.routing.services.FareService;
 import org.opentripplanner.routing.services.GraphService;
 import org.opentripplanner.routing.services.PathService;
-import org.opentripplanner.routing.services.SPTService;
 import org.opentripplanner.routing.spt.GraphPath;
-import org.opentripplanner.routing.spt.ShortestPathTree;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.opentripplanner.routing.vertextype.ExitVertex;
 import org.opentripplanner.routing.vertextype.OnboardDepartVertex;
@@ -85,37 +77,6 @@ public class PlanGenerator {
         List<GraphPath> paths = null;
         boolean tooSloped = false;
         try {
-            
-//            TraverseModeSet modes = new TraverseModeSet(
-//                    TraverseMode.WALK,
-//                    TraverseMode.BUS,
-//                    TraverseMode.RAIL,
-//                    TraverseMode.TRAM,
-//                    TraverseMode.SUBWAY,
-//                    TraverseMode.GONDOLA,
-//                    TraverseMode.FERRY
-//            );
-//
-//            SPTServiceFactory sptServiceFactory = new GenericAStarFactory();
-//            SPTService aStar = sptServiceFactory.instantiate();
-//
-//            SampleFactory sampleFactory = graphService.getGraph().getSampleFactory();
-//            Sample dst = sampleFactory.getSample(options.to.lng, options.to.lat);
-//
-//            options.batch = true;
-//            options.modes = modes;
-//            options.longDistance = true;
-//            options.maxTransfers = 4;
-//            options.setRoutingContext(graphService.getGraph());
-//            ShortestPathTree batchSpt = aStar.getShortestPathTree(options, 2.5);
-//
-//            RetryingPathServiceImpl retryingPathService = new RetryingPathServiceImpl(graphService, sptServiceFactory);
-//            retryingPathService.setFirstPathTimeout(1.0);
-//            retryingPathService.setMultiPathTimeout(0.5);
-//
-//            options.numItineraries = 3;
-//            paths = retryingPathService.getPaths(options, batchSpt, dst.v0, false);
-
             paths = pathService.getPaths(options);
             if (paths == null && options.wheelchairAccessible) {
                 // There are no paths that meet the user's slope restrictions.
