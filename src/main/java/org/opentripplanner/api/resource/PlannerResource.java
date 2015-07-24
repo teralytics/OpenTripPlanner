@@ -73,40 +73,6 @@ public class PlannerResource extends RoutingResource {
             Router router = otpServer.getRouter(request.routerId);
             GraphPathFinder gpFinder = new GraphPathFinder(router); // we could also get a persistent router-scoped GraphPathFinder but there's no setup cost here
 
-//            RoutingRequest pathsRequest = request.clone();
-//            SampleFactory sampleFactory = router.graph.getSampleFactory();
-//            GenericAStar aStar = new GenericAStar();
-//
-//            TraverseModeSet modes = new TraverseModeSet(
-//                    TraverseMode.BUS,
-//                    TraverseMode.RAIL,
-//                    TraverseMode.FERRY,
-//                    TraverseMode.TRAM,
-//                    TraverseMode.SUBWAY,
-//                    TraverseMode.GONDOLA,
-//                    TraverseMode.WALK
-//            );
-//
-//            sptRequest.batch = true;
-//            sptRequest.maxTransfers = 4;
-//            pathsRequest.numItineraries = 3;
-//            sptRequest.longDistance = true;
-//            sptRequest.maxWalkDistance = 200;
-//            sptRequest.setModes(modes);
-//            sptRequest.setRoutingContext(router.graph);
-//            ShortestPathTree batchSpt = aStar.getShortestPathTree(sptRequest, 1.5);
-//
-//            RetryingPathServiceImpl pathService = new RetryingPathServiceImpl(router, aStar);
-//            Sample dst = sampleFactory.getSample(sptRequest.to.lng, sptRequest.to.lat);
-//            pathsRequest.batch = false;
-//            pathsRequest.numItineraries = 3;
-//            pathsRequest.maxTransfers = 4;
-//            pathsRequest.longDistance = true;
-//            pathsRequest.maxWalkDistance = 200;
-//            pathsRequest.setModes(modes);
-//            pathsRequest.setRoutingContext(router.graph);
-//
-//            List<GraphPath> paths = pathService.getPaths(pathsRequest, batchSpt, dst.v0, false);
             List<GraphPath> paths = gpFinder.getPaths(request);
 
             /* Convert the internal GraphPaths to a TripPlan object that is included in an OTP web service Response. */
