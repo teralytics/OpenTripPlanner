@@ -12,12 +12,19 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 package org.opentripplanner.api.resource;
 
+import org.opentripplanner.analyst.core.Sample;
+import org.opentripplanner.analyst.request.SampleFactory;
 import org.opentripplanner.api.common.RoutingResource;
 import org.opentripplanner.api.model.TripPlan;
 import org.opentripplanner.api.model.error.PlannerError;
+import org.opentripplanner.routing.algorithm.AStar;
 import org.opentripplanner.routing.core.RoutingRequest;
+import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.impl.GraphPathFinder;
+import org.opentripplanner.routing.spt.DominanceFunction;
 import org.opentripplanner.routing.spt.GraphPath;
+import org.opentripplanner.routing.spt.ShortestPathTree;
 import org.opentripplanner.standalone.OTPServer;
 import org.opentripplanner.standalone.Router;
 import org.slf4j.Logger;
@@ -68,12 +75,39 @@ public class PlannerResource extends RoutingResource {
 
             /* Fill in request fields from query parameters via shared superclass method, catching any errors. */
             request = super.buildRequest();
+            RoutingRequest pathsRequest = request.clone();
 
             /* Find some good GraphPaths through the OTP Graph. */
             Router router = otpServer.getRouter(request.routerId);
             GraphPathFinder gpFinder = new GraphPathFinder(router); // we could also get a persistent router-scoped GraphPathFinder but there's no setup cost here
 
-            List<GraphPath> paths = gpFinder.getPaths(request);
+            SampleFactory sampleFactory = router.graph.getSampleFactory();
+            Sample dst = sampleFactory.getSample(request.to.lng, request.to.lat);
+
+            AStar aStar = new AStar();
+
+//            TraverseModeSet modes = new TraverseModeSet(
+//                    TraverseMode.BUS,
+//                    TraverseMode.RAIL,
+//                    TraverseMode.FERRY,
+//                    TraverseMode.TRAM,
+//                    TraverseMode.SUBWAY,
+//                    TraverseMode.GONDOLA,
+//                    TraverseMode.WALK
+//            );
+
+            request.batch = true;
+            request.maxTransfers = 4;
+            request.longDistance = false;
+//            request.setModes(modes);
+            request.dominanceFunction = new DominanceFunction.MinimumWeight();
+            request.setRoutingContext(router.graph);
+            ShortestPathTree batchSpt = aStar.getShortestPathTree(request, 5);
+
+            pathsRequest.numItineraries = 2;
+            pathsRequest.setRoutingContext(router.graph);
+            List<GraphPath> paths = gpFinder.getPaths(pathsRequest, batchSpt, dst.v0, true);
+//            List<GraphPath> paths = gpFinder.getPaths(request);
 
             /* Convert the internal GraphPaths to a TripPlan object that is included in an OTP web service Response. */
             TripPlan plan = GraphPathToTripPlanConverter.generatePlan(paths, request);
