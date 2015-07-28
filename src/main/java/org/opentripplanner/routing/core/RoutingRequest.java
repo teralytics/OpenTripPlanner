@@ -1101,14 +1101,18 @@ public class RoutingRequest implements Cloneable, Serializable {
     public void setMaxWalkDistance(double maxWalkDistance) {
         if (maxWalkDistance > 0) {
             this.maxWalkDistance = maxWalkDistance;
-            bikeWalkingOptions.maxWalkDistance = maxWalkDistance;
+            if (bikeWalkingOptions != null) {
+                bikeWalkingOptions.maxWalkDistance = maxWalkDistance;
+            }
         }
     }
 
     public void setMaxPreTransitTime(int maxPreTransitTime) {
         if (maxPreTransitTime > 0) {
             this.maxPreTransitTime = maxPreTransitTime;
-            bikeWalkingOptions.maxPreTransitTime = maxPreTransitTime;
+            if (bikeWalkingOptions != null) {
+                bikeWalkingOptions.maxPreTransitTime = maxPreTransitTime;
+            }
         }
     }
 
