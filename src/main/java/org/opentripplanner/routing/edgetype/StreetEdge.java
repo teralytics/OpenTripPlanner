@@ -13,6 +13,7 @@
 
 package org.opentripplanner.routing.edgetype;
 
+import com.google.common.base.Throwables;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.common.TurnRestriction;
@@ -626,7 +627,14 @@ public class StreetEdge extends Edge implements Cloneable, EdgeInfo {
 	}
 
 	public LineString getGeometry() {
-		return CompactLineString.uncompactLineString(fromv.getLon(), fromv.getLat(), tov.getLon(), tov.getLat(), compactGeometry, isBack());
+        try {
+            if (fromv == null || tov == null || compactGeometry == null) {
+                return null;
+            }
+            return CompactLineString.uncompactLineString(fromv.getLon(), fromv.getLat(), tov.getLon(), tov.getLat(), compactGeometry, isBack());
+        } catch (Exception ex) {
+            throw Throwables.propagate(ex);
+        }
 	}
 
 	private void setGeometry(LineString geometry) {

@@ -13,34 +13,23 @@
 
 package org.opentripplanner.routing.edgetype;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.vividsolutions.jts.geom.LineString;
+import org.apache.commons.collections.BidiMap;
+import org.apache.commons.collections.bidimap.DualHashBidiMap;
 import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Trip;
 import org.opentripplanner.common.MavenVersion;
-import org.opentripplanner.common.model.P2;
-import org.opentripplanner.gtfs.GtfsLibrary;
+import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.StateEditor;
-import org.opentripplanner.routing.core.TraverseMode;
-import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.graph.Edge;
-import org.opentripplanner.routing.graph.Vertex;
-import org.opentripplanner.routing.request.BannedStopSet;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.opentripplanner.routing.vertextype.OnboardVertex;
 import org.opentripplanner.routing.vertextype.PatternArriveVertex;
 import org.opentripplanner.routing.vertextype.PatternDepartVertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.vividsolutions.jts.geom.LineString;
 
 /**
  * A PatternInterlineDwell refers to "interlining", where a single physical vehicle carries out several logical trips
@@ -87,7 +76,7 @@ public class PatternInterlineDwell extends Edge implements OnboardEdge {
     private static final long serialVersionUID = MavenVersion.VERSION.getUID();
 
     /* Interlining relationships between trips. This could actually be a single Graph-wide BiMap. */
-    final BiMap<Trip,Trip> trips = HashBiMap.create();
+    final BidiMap trips = new DualHashBidiMap();
 
     public PatternInterlineDwell(TripPattern p0, TripPattern p1) {
         // The dwell actually connects the _arrival_ at the last stop of the first pattern
@@ -139,7 +128,7 @@ public class PatternInterlineDwell extends Edge implements OnboardEdge {
 
         RoutingRequest options = state0.getOptions();
         Trip oldTrip = state0.getBackTrip();
-        Trip newTrip = options.arriveBy ? trips.inverse().get(oldTrip) : trips.get(oldTrip);
+        Trip newTrip = (Trip) (options.arriveBy ? trips.inverseBidiMap().get(oldTrip) : trips.get(oldTrip));
         if (newTrip == null) return null;
 
         TripPattern newPattern;
