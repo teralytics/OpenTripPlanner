@@ -77,7 +77,21 @@ public class PlanGenerator {
         List<GraphPath> paths = null;
         boolean tooSloped = false;
         try {
-
+            if (options.modes.isTransit()) {
+                options.setModes(new TraverseModeSet(
+                        TraverseMode.WALK,
+                        TraverseMode.RAIL,
+                        TraverseMode.BUS,
+                        TraverseMode.SUBWAY,
+                        TraverseMode.TRAM,
+                        TraverseMode.GONDOLA
+                ));
+            } else {
+                options.setModes(new TraverseModeSet(
+                        TraverseMode.CAR,
+                        TraverseMode.FERRY
+                ));
+            }
             paths = pathService.getPaths(options);
             if (paths == null && options.wheelchairAccessible) {
                 // There are no paths that meet the user's slope restrictions.

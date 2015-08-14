@@ -69,8 +69,8 @@ public class StreetVertexIndexServiceImpl implements StreetVertexIndexService {
     /* all distance constants here are plate-carée Euclidean, 0.001 ~= 100m at equator */
 
     // Edges will only be found if they are closer than this distance
-    private double maxDistanceFromStreet = 0.01000;
-    private double searchGrowth = 0.001;
+    private double maxDistanceFromStreet = 0.05000;
+    private double searchGrowth = 0.005;
 
     // Maximum difference in distance for two geometries to be considered coincident
     public static final double DISTANCE_ERROR = 0.000001;

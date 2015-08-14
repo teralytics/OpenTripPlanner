@@ -100,7 +100,7 @@ otp.config = {
      * Site name / description / branding display options
      */
 
-    siteName            : "My OTP Instance",
+    siteName            : "Teralytics Routing Instance",
     siteDescription     : "An OpenTripPlanner deployment.",
     logoGraphic         : 'images/otp_logo_darkbg_40px.png',
     // bikeshareName    : "",
@@ -109,7 +109,7 @@ otp.config = {
 
     showLogo            : true,
     showTitle           : true,
-    showModuleSelector  : true,
+    showModuleSelector  : false,
     metric              : false,
 
 
