@@ -92,6 +92,7 @@ public class PlanGenerator {
                         TraverseMode.FERRY
                 ));
             }
+            options.setMaxTransfers(4);
             paths = pathService.getPaths(options);
             if (paths == null && options.wheelchairAccessible) {
                 // There are no paths that meet the user's slope restrictions.
