@@ -188,12 +188,12 @@ public class Graph implements Serializable {
      */
     public void addVertex(Vertex v) {
         Vertex old = vertices.put(v.getLabel(), v);
-        if (old != null) {
-            if (old == v)
-                LOG.error("repeatedly added the same vertex: {}", v);
-            else
-                LOG.error("duplicate vertex label in graph (added vertex to graph anyway): {}", v);
-        }
+//        if (old != null) {
+//            if (old == v)
+//                LOG.error("repeatedly added the same vertex: {}", v);
+//            else
+//                LOG.error("duplicate vertex label in graph (added vertex to graph anyway): {}", v);
+//        }
     }
 
     /**
@@ -706,7 +706,7 @@ public class Graph implements Serializable {
             } else {
                 LOG.error("Commit mismatch in non-SNAPSHOT version. This implies a problem with "
                         + "the build or release process.");
-                return true; // major problem
+                return false; // major problem
             }
         } else {
             // no version mismatch, no commit mismatch

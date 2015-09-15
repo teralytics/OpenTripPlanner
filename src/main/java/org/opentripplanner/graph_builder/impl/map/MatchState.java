@@ -21,7 +21,7 @@ import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.RoutingRequest;
-import org.opentripplanner.routing.edgetype.StreetEdge;
+import org.opentripplanner.routing.edgetype.EdgeInfo;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Vertex;
 
@@ -58,7 +58,7 @@ public abstract class MatchState {
         }
     }
 
-    public abstract List<MatchState> getNextStates();
+    public abstract List<MatchState> getNextStates(TraverseMode traverseMode);
 
     public Edge getEdge() {
         return edge;
@@ -75,11 +75,18 @@ public abstract class MatchState {
         return s1 != null;
     }
 
-    protected List<Edge> getOutgoingMatchableEdges(Vertex vertex) {
+    protected List<Edge> getOutgoingMatchableEdges(Vertex vertex, TraverseMode traverseMode) {
         List<Edge> edges = new ArrayList<Edge>();
+        //returns streetEdges for Buses and PublicTransitEdges for everything else
         for (Edge e : vertex.getOutgoing()) {
-            if (!(e instanceof StreetEdge))
+            if(e instanceof EdgeInfo) {
+                if (!((EdgeInfo) e).getPublicTransitType().equals(traverseMode)) {
+                    continue;
+                }
+            } else {
+                //System.err.println("edge " + e.getClass().getName() + " is not from EdgeInfo!");
                 continue;
+            }
             if (e.getGeometry() == null)
                 continue;
             edges.add(e);

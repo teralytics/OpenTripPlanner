@@ -18,6 +18,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.edgetype.EdgeInfo;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Vertex;
 
@@ -56,7 +58,7 @@ public class MidblockMatchState extends MatchState {
     }
 
     @Override
-    public List<MatchState> getNextStates() {
+    public List<MatchState> getNextStates(TraverseMode traverseMode) {
         ArrayList<MatchState> nextStates = new ArrayList<MatchState>();
         if (routeIndex.getSegmentIndex() == routeGeometry.getNumPoints() - 1) {
             // this has either hit the end, or gone off the end. It's not real clear which.
@@ -147,9 +149,10 @@ public class MidblockMatchState extends MatchState {
                     return nextStates;
                 }
                 
-                for (Edge e : getOutgoingMatchableEdges(toVertex)) {
+                for (Edge e : getOutgoingMatchableEdges(toVertex, traverseMode)) {
                     double cost = error + NEW_SEGMENT_PENALTY;
-                    if (!carsCanTraverse(e)) {
+                    //if (traverseMode.equals(TraverseMode.BUS) && !carsCanTraverse(e)) {
+                    if (e instanceof EdgeInfo && !((EdgeInfo) e).getPublicTransitType().equals(traverseMode)) {
                         cost += NO_TRAVERSE_PENALTY;
                     }
                     MatchState nextState = new MidblockMatchState(this, routeGeometry, e,
@@ -181,7 +184,7 @@ public class MidblockMatchState extends MatchState {
                 Vertex toVertex = edge.getToVertex();
                 double travelAlongOldEdge = distanceAlongGeometry(edgeGeometry, edgeIndex, null);
 
-                for (Edge e : getOutgoingMatchableEdges(toVertex)) {
+                for (Edge e : getOutgoingMatchableEdges(toVertex, traverseMode)) {
                     Geometry newEdgeGeometry = e.getGeometry();
                     LocationIndexedLine newIndexedEdge = new LocationIndexedLine(newEdgeGeometry);
                     newEdgeIndex = newIndexedEdge.project(newRouteCoord);
@@ -199,7 +202,8 @@ public class MidblockMatchState extends MatchState {
                     }
 
                     double cost = error + NEW_SEGMENT_PENALTY;
-                    if (!carsCanTraverse(e)) {
+                    //if (traverseMode.equals(TraverseMode.BUS) && !carsCanTraverse(e)) {
+                    if (e instanceof EdgeInfo && !((EdgeInfo) e).getPublicTransitType().equals(traverseMode)) {
                         cost += NO_TRAVERSE_PENALTY;
                     }
 

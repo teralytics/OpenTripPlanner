@@ -18,6 +18,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.edgetype.EdgeInfo;
+import org.opentripplanner.routing.edgetype.PublicTransitEdge;
 import org.opentripplanner.routing.edgetype.StreetEdge;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
@@ -47,7 +50,7 @@ public class StreetMatcher {
         STRtree edgeIndex = new STRtree();
         for (Vertex v : graph.getVertices()) {
             for (Edge e : v.getOutgoing()) {
-                if (e instanceof StreetEdge) {
+                if (e instanceof StreetEdge || e instanceof PublicTransitEdge) {
                     Envelope envelope;
                     Geometry geometry = e.getGeometry();
                     envelope = geometry.getEnvelopeInternal();
@@ -66,7 +69,7 @@ public class StreetMatcher {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Edge> match(Geometry routeGeometry) {
+    public List<Edge> match(Geometry routeGeometry, TraverseMode traverseMode) {
         
         routeGeometry = removeDuplicatePoints(routeGeometry);
 
@@ -95,6 +98,19 @@ public class StreetMatcher {
 
         // compute initial states
         for (Edge initialEdge : nearbyEdges) {
+
+            if(initialEdge instanceof EdgeInfo) {
+                if (!((EdgeInfo) initialEdge).getPublicTransitType().equals(traverseMode)) {
+                    continue;
+                }
+            } else {
+                //Other edges are StreetTransitLink and preboard edges and other links
+                //log.warn("initial Edge {} is not from EdgeInfo!", initialEdge.getClass().getName());
+                continue;
+            }
+            if (initialEdge instanceof StreetEdge) {
+                log.debug("Initial edge is streetEdge. Traverse Mode: {}", traverseMode);
+            }
             Geometry edgeGeometry = initialEdge.getGeometry();
             
             LocationIndexedLine indexedEdge = new LocationIndexedLine(edgeGeometry);
@@ -126,7 +142,7 @@ public class StreetMatcher {
             if (state instanceof EndMatchState) {
                 return toEdgeList(state);
             }
-            for (MatchState next : state.getNextStates()) {
+            for (MatchState next : state.getNextStates(traverseMode)) {
                 if (seen.contains(next)) {
                     continue;
                 }

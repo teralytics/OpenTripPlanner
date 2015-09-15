@@ -135,6 +135,7 @@ public class OTPConfigurator {
         GraphBuilderTask graphBuilder = new GraphBuilderTask();
         List<File> gtfsFiles = Lists.newArrayList();
         List<File> osmFiles =  Lists.newArrayList();
+        List<File> objFiles =  Lists.newArrayList();
         File configFile = null;
         /* For now this is adding files from all directories listed, rather than building multiple graphs. */
         for (File dir : params.build) {
@@ -160,6 +161,10 @@ public class OTPConfigurator {
                         configFile = file;
                     }
                     break;
+                case GRAPH:
+                    LOG.info("Found OBJ file {}", file);
+                    objFiles.add(file);
+                    break;
                 case OTHER:
                     LOG.debug("Skipping file '{}'", file);
                 }
@@ -167,7 +172,8 @@ public class OTPConfigurator {
         }
         boolean hasOSM  = ! (osmFiles.isEmpty()  || params.noStreets);
         boolean hasGTFS = ! (gtfsFiles.isEmpty() || params.noTransit);
-        if ( ! (hasOSM || hasGTFS )) {
+        boolean hasGraphs = ! (objFiles.isEmpty() || params.read == null);
+        if ( ! (hasOSM || hasGTFS || hasGraphs )) {
             LOG.error("Found no input files from which to build a graph in {}", params.build.toString());
             return null;
         }
@@ -255,7 +261,7 @@ public class OTPConfigurator {
      * Represents the different types of input files for a graph build.
      */
     private static enum InputFileType {
-        GTFS, OSM, CONFIG, OTHER;
+        GTFS, OSM, CONFIG, GRAPH, OTHER;
         public static InputFileType forFile(File file) {
             String name = file.getName();
             if (name.endsWith(".zip")) {
@@ -269,6 +275,7 @@ public class OTPConfigurator {
             if (name.endsWith(".pbf")) return OSM;
             if (name.endsWith(".osm")) return OSM;
             if (name.endsWith(".osm.xml")) return OSM;
+            if (name.endsWith(".obj")) return GRAPH;
             if (name.equals("Embed.properties")) return CONFIG;
             return OTHER;
         }
