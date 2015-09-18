@@ -25,9 +25,9 @@ public class IncrementingIdGeneratorTest {
     @Test
     public void testConstruct() {
         UniqueIdGenerator<String> gen = new IncrementingIdGenerator<String>();
-        assertEquals(0, gen.getId(""));
-        assertEquals(1, gen.getId("fake"));
-        assertEquals(2, gen.getId("foo"));
+        assertEquals(1, gen.getId(""));
+        assertEquals(2, gen.getId("fake"));
+        assertEquals(3, gen.getId("foo"));
     }
     
     @Test
