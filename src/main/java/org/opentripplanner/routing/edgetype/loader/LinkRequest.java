@@ -206,6 +206,12 @@ public class LinkRequest {
         StreetEdge e1 = bestPair.first;
         StreetEdge e2 = bestPair.second;
 
+        if (e1.isBack()) {
+            StreetEdge aux = e1;
+            e1 = e2;
+            e2 = aux;
+        }
+
         String name = e1.getName();
         StreetVertex e1v1 = (StreetVertex) e1.getFromVertex();
         StreetVertex e1v2 = (StreetVertex) e1.getToVertex();
@@ -275,9 +281,9 @@ public class LinkRequest {
         IntersectionVertex e2midpoint = null;
         if (e2 != null) {
             e2midpoint  = new IntersectionVertex(linker.graph, "split 2 at " + label, midCoord.x, midCoord.y, name);
-            backward1 = new StreetWithElevationEdge(e2v1, e2midpoint, backGeometryPair.first,
+            backward1 = new StreetWithElevationEdge(forward2.getId(),-1L, e2v1, e2midpoint, backGeometryPair.first,
                     name, lengthOut, e2.getPermission(), e2.isBack());
-            backward2 = new StreetWithElevationEdge(e2midpoint, e2v2, backGeometryPair.second,
+            backward2 = new StreetWithElevationEdge(forward1.getId(),-1L, e2midpoint, e2v2, backGeometryPair.second,
                     name, lengthIn, e2.getPermission(), e2.isBack());
             if (e2 instanceof AreaEdge) {
                 ((AreaEdge) e2).getArea().addVertex(e2midpoint, linker.graph);
