@@ -206,7 +206,7 @@ public class LinkRequest {
         StreetEdge e1 = bestPair.first;
         StreetEdge e2 = bestPair.second;
 
-        if (e1.isBack()) {
+        if ((e1.getOsmId() == e2.getOsmId()) && e1.isBack() && !e2.isBack()) {
             StreetEdge aux = e1;
             e1 = e2;
             e2 = aux;
