@@ -163,7 +163,7 @@ public class LinkRequest {
             StreetEdge second = null;
             while (iter.hasNext()) {
                 StreetEdge edge = iter.next();
-                if (edge.getFromVertex() == first.getToVertex() && edge.getToVertex() == first.getFromVertex()) {
+                if (edge.getFromVertex() == first.getToVertex() && edge.getToVertex() == first.getFromVertex() && first.getOsmId() == edge.getOsmId()) {
                     second = edge;
                 }
             }

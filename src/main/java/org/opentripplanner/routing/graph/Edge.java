@@ -66,6 +66,8 @@ public abstract class Edge implements Serializable {
         this.osmId = osmId;
         if (fwdId > 0 && back) {
             this.id = -fwdId;
+        } else if (fwdId > 0) {
+            this.id = fwdId;
         } else if (fwdId == 0) {
             int genId = idGenerator.getId(this);
             this.id = back ? -genId : genId;
