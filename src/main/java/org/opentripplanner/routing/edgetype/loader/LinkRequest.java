@@ -163,8 +163,18 @@ public class LinkRequest {
             StreetEdge second = null;
             while (iter.hasNext()) {
                 StreetEdge edge = iter.next();
-                if (edge.getFromVertex() == first.getToVertex() && edge.getToVertex() == first.getFromVertex() && first.getOsmId() == edge.getOsmId()) {
+                if (Math.abs(edge.getId()) == Math.abs(first.getId())) {
                     second = edge;
+                }
+            }
+            if (second == null) {
+                iter = edges.iterator();
+                first = iter.next();
+                while (iter.hasNext()) {
+                    StreetEdge edge = iter.next();
+                    if (edge.getFromVertex() == first.getToVertex() && edge.getToVertex() == first.getFromVertex() && first.getOsmId() == edge.getOsmId()) {
+                        second = edge;
+                    }
                 }
             }
             StreetEdge secondClone;
