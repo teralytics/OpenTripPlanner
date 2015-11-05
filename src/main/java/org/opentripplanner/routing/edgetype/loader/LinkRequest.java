@@ -158,34 +158,55 @@ public class LinkRequest {
         LinkedList<P2<StreetEdge>> replacement = linker.replacements.get(edgeSet);
         if (replacement == null) {
             replacement = new LinkedList<P2<StreetEdge>>();
-            Iterator<StreetEdge> iter = edges.iterator();
-            StreetEdge first = iter.next();
-            StreetEdge second = null;
-            while (iter.hasNext()) {
-                StreetEdge edge = iter.next();
-                if (Math.abs(edge.getId()) == Math.abs(first.getId())) {
-                    second = edge;
-                }
+
+            StreetEdge[] edgesArray = edges.toArray(new StreetEdge[edges.size()]);
+            boolean[] used = new boolean[edgesArray.length];
+            for (int i=0; i<edgesArray.length; i++) {
+                used[i] = false;
             }
-            if (second == null) {
-                iter = edges.iterator();
-                first = iter.next();
-                while (iter.hasNext()) {
-                    StreetEdge edge = iter.next();
-                    if (edge.getFromVertex() == first.getToVertex() && edge.getToVertex() == first.getFromVertex() && first.getOsmId() == edge.getOsmId()) {
-                        second = edge;
+            for (int i=0; i<edgesArray.length; i++) {
+
+                if (used[i]) {
+                    continue;
+                }
+                StreetEdge first = edgesArray[i];
+                StreetEdge second = null;
+                for (int j=i+1; j<edgesArray.length; j++) {
+                    StreetEdge edge = edgesArray[j];
+                    if (!used[j]) {
+                        if (Math.abs(edge.getId()) == Math.abs(first.getId())) {
+                            second = edge;
+                            used[j] = true;
+                            break;
+                        }
                     }
                 }
+                if (second == null) {
+                    for (int j=i+1; j<edgesArray.length; j++) {
+                        StreetEdge edge = edgesArray[j];
+                        if (!used[j]) {
+                            if (    edge.getFromVertex() == first.getToVertex() &&
+                                    edge.getToVertex() == first.getFromVertex() &&
+                                    first.getOsmId() == edge.getOsmId()) {
+                                second = edge;
+                                used[j] = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                StreetEdge secondClone;
+                if (second == null) {
+                    secondClone = null;
+                } else {
+                    secondClone = ((StreetEdge) second).clone();
+                }
+                P2<StreetEdge> newEdges = new P2<StreetEdge>(((StreetEdge) first).clone(), secondClone);
+                replacement.add(newEdges);
+
             }
-            StreetEdge secondClone;
-            if (second == null) {
-                secondClone = null;
-            } else {
-                secondClone = ((StreetEdge) second).clone();
-            }
-            P2<StreetEdge> newEdges = new P2<StreetEdge>(((StreetEdge) first).clone(), secondClone);
-            replacement.add(newEdges);
             linker.replacements.put(edgeSet, replacement);
+
         }
 
         // If the original replacement edge pair has already been split,
@@ -216,10 +237,12 @@ public class LinkRequest {
         StreetEdge e1 = bestPair.first;
         StreetEdge e2 = bestPair.second;
 
-        if ((e1.getOsmId() == e2.getOsmId()) && e1.isBack() && !e2.isBack()) {
-            StreetEdge aux = e1;
-            e1 = e2;
-            e2 = aux;
+        if (e2 != null) {
+            if ((e1.getOsmId() == e2.getOsmId()) && e1.isBack() && !e2.isBack()) {
+                StreetEdge aux = e1;
+                e1 = e2;
+                e2 = aux;
+            }
         }
 
         String name = e1.getName();
@@ -274,6 +297,7 @@ public class LinkRequest {
         // Split each edge independently. If a only one splitter vertex is used, routing may take 
         // shortcuts thought the splitter vertex to avoid turn penalties.
         IntersectionVertex e1midpoint = new IntersectionVertex(linker.graph, "split 1 at " + label, midCoord.x, midCoord.y, name);
+        e1midpoint.freeFlowing = true; //ADDED IN NEW OTP VERSION
         // We are replacing two edges with four edges
         // Note: Always enable elevation. This should not be a big waste of memory.
         StreetWithElevationEdge forward1 = new StreetWithElevationEdge(e1v1, e1midpoint, forward1Geom, name, lengthIn,
@@ -291,6 +315,7 @@ public class LinkRequest {
         IntersectionVertex e2midpoint = null;
         if (e2 != null) {
             e2midpoint  = new IntersectionVertex(linker.graph, "split 2 at " + label, midCoord.x, midCoord.y, name);
+            e2midpoint.freeFlowing = true; //ADDED IN NEW OTP VERSION
             backward1 = new StreetWithElevationEdge(forward2.getId(),-1L, e2v1, e2midpoint, backGeometryPair.first,
                     name, lengthOut, e2.getPermission(), e2.isBack());
             backward2 = new StreetWithElevationEdge(forward1.getId(),-1L, e2midpoint, e2v2, backGeometryPair.second,
@@ -340,12 +365,12 @@ public class LinkRequest {
         }
         
         // disconnect the two old edges from the graph
-        linker.graph.removeTemporaryEdge(e1);
+        //linker.graph.removeTemporaryEdge(e1); REMOVED IN NEW OTP VERSION
         edgesAdded.remove(e1);
         //e1.detach();
         
         if (e2 != null) {
-            linker.graph.removeTemporaryEdge(e2);
+            //linker.graph.removeTemporaryEdge(e2); REMOVED IN NEW OTP VERSION
             edgesAdded.remove(e2);
             //e2.detach();
             // return the two new splitter vertices
