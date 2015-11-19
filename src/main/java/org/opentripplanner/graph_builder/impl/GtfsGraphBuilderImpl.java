@@ -132,37 +132,43 @@ public class GtfsGraphBuilderImpl implements GraphBuilder {
         
         try {
             for (GtfsBundle gtfsBundle : _gtfsBundles.getBundles()) {
-                // apply global defaults to individual GTFSBundles (if globals have been set) 
-                if (cacheDirectory != null && gtfsBundle.cacheDirectory == null)
-                    gtfsBundle.cacheDirectory = cacheDirectory;
-                if (useCached != null && gtfsBundle.useCached == null)
-                    gtfsBundle.useCached = useCached;
-                GtfsMutableRelationalDao dao = new GtfsRelationalDaoImpl();
-                GtfsContext context = GtfsLibrary.createContext(dao, service);
-                GTFSPatternHopFactory hf = new GTFSPatternHopFactory(context);
-                hf.setStopContext(stopContext);
-                hf.setFareServiceFactory(_fareServiceFactory);
-                hf.setMaxStopToShapeSnapDistance(gtfsBundle.getMaxStopToShapeSnapDistance());
+                try {
+                    // apply global defaults to individual GTFSBundles (if globals have been set)
+                    if (cacheDirectory != null && gtfsBundle.cacheDirectory == null)
+                        gtfsBundle.cacheDirectory = cacheDirectory;
+                    if (useCached != null && gtfsBundle.useCached == null)
+                        gtfsBundle.useCached = useCached;
+                    GtfsMutableRelationalDao dao = new GtfsRelationalDaoImpl();
+                    GtfsContext context = GtfsLibrary.createContext(dao, service);
+                    GTFSPatternHopFactory hf = new GTFSPatternHopFactory(context);
+                    hf.setStopContext(stopContext);
+                    hf.setFareServiceFactory(_fareServiceFactory);
+                    hf.setMaxStopToShapeSnapDistance(gtfsBundle.getMaxStopToShapeSnapDistance());
 
-                loadBundle(gtfsBundle, graph, dao);
+                    loadBundle(gtfsBundle, graph, dao);
 
-                CalendarServiceDataFactoryImpl csfactory = new CalendarServiceDataFactoryImpl();
-                csfactory.setGtfsDao(dao);
-                CalendarServiceData data = csfactory.createData();
-                service.addData(data, dao);
+                    CalendarServiceDataFactoryImpl csfactory = new CalendarServiceDataFactoryImpl();
+                    csfactory.setGtfsDao(dao);
+                    CalendarServiceData data = csfactory.createData();
+                    service.addData(data, dao);
 
-                hf.setDefaultStreetToStopTime(gtfsBundle.getDefaultStreetToStopTime());
-                hf.run(graph);
+                    hf.setDefaultStreetToStopTime(gtfsBundle.getDefaultStreetToStopTime());
+                    hf.run(graph);
 
-                if (gtfsBundle.doesTransfersTxtDefineStationPaths()) {
-                    hf.createTransfersTxtTransfers();
+                    if (gtfsBundle.doesTransfersTxtDefineStationPaths()) {
+                        hf.createTransfersTxtTransfers();
+                    }
+                    if (gtfsBundle.linkStopsToParentStations) {
+                        hf.linkStopsToParentStations(graph);
+                    }
+                    if (gtfsBundle.parentStationTransfers) {
+                        hf.createParentStationTransfers();
+                    }
+                } catch (Exception ex) {
+                    LOG.error("Cannot load and/or process GTFS bundle {}", gtfsBundle.getCsvInputSource());
+                    continue;
                 }
-                if (gtfsBundle.linkStopsToParentStations) {
-                    hf.linkStopsToParentStations(graph);
-                } 
-                if (gtfsBundle.parentStationTransfers) {
-                    hf.createParentStationTransfers();
-                }
+
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

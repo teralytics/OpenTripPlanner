@@ -18,7 +18,9 @@ depends on otp-routing.
   
   <logger name="org.opentripplanner" level="info" />
   <logger name="org.opentripplanner.analyst" level="info" />
+  <logger name="org.opentripplanner.graph_builder" level="error" />
   <logger name="org.opentripplanner.routing" level="info" />
+  <logger name="org.opentripplanner.routing.edgetype.factory" level="error" />
   <logger name="org.opentripplanner.routing.impl.RetryingPathServiceImpl" level="info" />
   <logger name="org.opentripplanner.routing.algorithm.GenericAStar" level="info" />
   <!-- Avoid printing debug messages about free-flowing vertices -->

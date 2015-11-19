@@ -643,6 +643,8 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
                 // this area cannot be constructed, but we already have all the
                 // necessary nodes to construct it. So, something must be wrong with
                 // the area; we'll mark it as processed so that we don't retry.
+            } catch (IllegalArgumentException iae) {
+                LOG.error("Error constructing area from single way: " + iae);
             }
             processedAreas.add(way);
         }
