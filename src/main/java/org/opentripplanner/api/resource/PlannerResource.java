@@ -21,6 +21,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.base.Stopwatch;
 import org.opentripplanner.api.common.RoutingResource;
 import org.opentripplanner.api.model.TripPlan;
 import org.opentripplanner.api.model.error.PlannerError;
@@ -33,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This is the primary entry point for the trip planning web service.
@@ -47,13 +50,14 @@ public class PlannerResource extends RoutingResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlannerResource.class);
 
+    private static final AtomicInteger requestCounter = new AtomicInteger();
+
     // We inject info about the incoming request so we can include the incoming query
     // parameters in the outgoing response. This is a TriMet requirement.
     // Jersey uses @Context to inject internal types and @InjectParam or @Resource for DI objects.
     @GET
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML + Q, MediaType.TEXT_XML + Q })
     public Response plan(@Context OTPServer otpServer, @Context UriInfo uriInfo) {
-
         /*
          * TODO: add Lang / Locale parameter, and thus get localized content (Messages & more...)
          * TODO: from/to inputs should be converted / geocoded / etc... here, and maybe send coords 
@@ -61,7 +65,13 @@ public class PlannerResource extends RoutingResource {
          * TODO: org.opentripplanner.routing.module.PathServiceImpl has COOORD parsing. Abstract that
          *       out so it's used here too...
          */
-        
+
+        int requestId = requestCounter.incrementAndGet();
+        Stopwatch stopwatch = null;
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Start PlannerResource handler for request " + requestId);
+            stopwatch = new Stopwatch().start();
+        }
         // Create response object, containing a copy of all request parameters. Maybe they should be in the debug section of the response.
         Response response = new Response(uriInfo);
         RoutingRequest request = null;
@@ -92,6 +102,9 @@ public class PlannerResource extends RoutingResource {
                 request.cleanup(); // TODO verify that this cleanup step is being done on Analyst web services
             }       
         }
+        if (LOG.isInfoEnabled() && stopwatch != null)
+        LOG.info("End PlannerResource handler for request " + requestId + " after " +
+                 stopwatch.elapsed(TimeUnit.SECONDS) + " seconds.");
         return response;
     }
 
