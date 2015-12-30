@@ -69,7 +69,7 @@ public class PlannerResource extends RoutingResource {
         int requestId = requestCounter.incrementAndGet();
         Stopwatch stopwatch = null;
         if (LOG.isInfoEnabled()) {
-            LOG.info("Start PlannerResource handler for request " + requestId);
+            LOG.info("Start handler for request {}", requestId);
             stopwatch = new Stopwatch().start();
         }
         // Create response object, containing a copy of all request parameters. Maybe they should be in the debug section of the response.
@@ -79,6 +79,9 @@ public class PlannerResource extends RoutingResource {
 
             /* Fill in request fields from query parameters via shared superclass method, catching any errors. */
             request = super.buildRequest();
+            if (LOG.isInfoEnabled()) {
+                LOG.info("request for id " + requestId + ": {" + request.toString("|") + "}");
+            }
 
             /* Find some good GraphPaths through the OTP Graph. */
             Router router = otpServer.getRouter(request.routerId);
@@ -102,9 +105,14 @@ public class PlannerResource extends RoutingResource {
                 request.cleanup(); // TODO verify that this cleanup step is being done on Analyst web services
             }       
         }
-        if (LOG.isInfoEnabled() && stopwatch != null)
-        LOG.info("End PlannerResource handler for request " + requestId + " after " +
-                 stopwatch.elapsed(TimeUnit.SECONDS) + " seconds.");
+
+        if (LOG.isInfoEnabled()) {
+            if (stopwatch == null) {
+                LOG.info("End handler for request {}", requestId);
+            } else {
+                LOG.info("End handler for request {} after {}ms.", requestId, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            }
+        }
         return response;
     }
 
