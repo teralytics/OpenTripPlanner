@@ -8,12 +8,17 @@ depends on otp-routing.
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <!-- print out file and line number in parenthesis, which Eclipse and IDEA will link -->
-      <pattern>%d{HH:mm:ss.SSS} %level \(%F:%L\) %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} %level \(%logger\) %msg%n</pattern>
     </encoder>
   </appender>
 
-  <root level="debug">
+
+  <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
     <appender-ref ref="STDOUT" />
+  </appender>
+
+  <root level="debug">
+    <appender-ref ref="ASYNC" />
   </root>
 
   <logger name="org.opentripplanner.graph_builder.module.DirectTransferGenerator" level="info" />
@@ -30,7 +35,12 @@ depends on otp-routing.
   <logger name="org.onebusaway.gtfs.impl.calendar.CalendarServiceDataFactoryImpl" level="warn" />
   <!-- Avoid printing ugly warning message when unable to create websocket connection -->
   <logger name="com.ning.http.client.providers.netty.NettyAsyncHttpProvider" level="error" />
-  
+  <!-- very noisy -->
+  <logger name="org.opentripplanner.routing.core.StateEditor" level="off" />
+
   <logger name="com.sun.jersey" level="debug" />
-  
+
+
+
+
 </configuration>
