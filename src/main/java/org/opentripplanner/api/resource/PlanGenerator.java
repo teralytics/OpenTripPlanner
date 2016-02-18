@@ -78,6 +78,46 @@ public class PlanGenerator {
         boolean tooSloped = false;
         try {
 
+//            TraverseModeSet modes = new TraverseModeSet(
+//                    TraverseMode.WALK,
+//                    TraverseMode.BUS,
+//                    TraverseMode.RAIL,
+//                    TraverseMode.TRAM,
+//                    TraverseMode.SUBWAY,
+//                    TraverseMode.GONDOLA,
+//                    TraverseMode.CAR
+//                    TraverseMode.FERRY
+//            );
+
+//            double maxD = SphericalDistanceLibrary.metersToDegrees(5000);
+//            double growth = SphericalDistanceLibrary.metersToDegrees(500);
+//            ((StreetVertexIndexServiceImpl) graphService.getGraph().streetIndex).setMaxDistanceFromStreet(maxD);
+//            ((StreetVertexIndexServiceImpl) graphService.getGraph().streetIndex).setSearchGrowth(growth);
+//
+//            SPTServiceFactory sptServiceFactory = new GenericAStarFactory();
+//            SPTService aStar = sptServiceFactory.instantiate();
+
+//            options.from = new GenericLocation(41.828927226470604, -87.91969042647061);
+//            options.to = new GenericLocation(41.739026800000005, -87.565433);
+
+//            SampleFactory sampleFactory = graphService.getGraph().getSampleFactory();
+//            sampleFactory.setSearchRadiusM(5000);
+//            Sample dst = sampleFactory.getSample(options.to.lng, options.to.lat);
+//
+//            options.batch = true;
+//            options.modes = modes;
+//            options.longDistance = false;
+//            options.maxTransfers = 4;
+//            options.setRoutingContext(graphService.getGraph());
+//            ShortestPathTree batchSpt = aStar.getShortestPathTree(options, 4);
+//
+//            RetryingPathServiceImpl retryingPathService = new RetryingPathServiceImpl(graphService, sptServiceFactory);
+//            retryingPathService.setFirstPathTimeout(1);
+//            retryingPathService.setMultiPathTimeout(0.5);
+//
+//            options.numItineraries = 3;
+//            paths = retryingPathService.getPaths(options, batchSpt, dst.v0, true);
+//
             paths = pathService.getPaths(options);
             if (paths == null && options.wheelchairAccessible) {
                 // There are no paths that meet the user's slope restrictions.
