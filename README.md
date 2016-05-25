@@ -17,6 +17,14 @@ The OpenTripPlanner project was launched by Portland, Oregon's transport agency 
 In summer of 2013, the OpenTripPlanner project was accepted for membership in the Software Freedom Conservancy (SFC). SFC handles the legal and financial details common to many open source projects, providing a formal framework for OTP and allowing contributors to concentrate on the code. For more information, see the SFC website at http://sfconservancy.org/.
 
 
+## Publishing to remote repositories
+In order to publish artifacts (release or snapshot) you have to issue the following command:
+
+```
+mvn clean deploy
+```
+
+
 ## Mailing Lists
 
 The main forums through which the OpenTripPlanner community organizes development and provides mutual assistance are our two Google discussion groups. Changes and extensions to OTP are debated on the developers' list (opentripplanner-dev). More general questions and announcements of interest to non-developer OTP users should be directed to the opentripplanner-users list.

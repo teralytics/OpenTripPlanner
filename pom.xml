@@ -6,7 +6,7 @@
     <url>http://opentripplanner.org/</url>
     <groupId>org.opentripplanner</groupId>
     <artifactId>otp</artifactId>
-    <version>0.13.30-EDGE-SNAPSHOT</version>
+    <version>0.13.30</version>
     <packaging>jar</packaging>
 
     <scm>
@@ -217,7 +217,7 @@
                         </goals>
                         <configuration>
                             <!-- The shaded JAR will be the main artifact for the project -->
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
                             <!-- MinimizeJar removes unused classes, (classes not imported explicitly by name).
                               We have eliminated most Jersey auto-scanning, but there is still some need for include
                               filters to force-include classes that are dynamically loaded by name/auto-scanned. -->
