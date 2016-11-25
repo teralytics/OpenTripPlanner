@@ -26,6 +26,7 @@ import org.opentripplanner.routing.vertextype.TransitStop;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.LineString;
+import java.util.Locale;
 
 /** 
  * This represents the connection between a street vertex and a transit vertex
@@ -74,7 +75,25 @@ public class StreetTransitLink extends Edge {
         return "street transit link";
     }
 
+    @Override
+    public String getName(Locale locale) {
+        //TODO: localize
+        return this.getName();
+    }
+
     public State traverse(State s0) {
+
+        // Forbid taking shortcuts composed of two street-transit links in a row. Also avoids spurious leg transitions.
+        if (s0.backEdge instanceof StreetTransitLink) {
+            return null;
+        }
+
+        // Do not re-enter the street network following a transfer.
+        // FIXME this is a serious problem: transfer result state can dominate arrivals at a stop on a vehicle and prune the tree!
+        if (s0.backEdge instanceof SimpleTransfer) {
+            return null;
+        }
+
         RoutingRequest req = s0.getOptions();
         if (s0.getOptions().wheelchairAccessible && !wheelchairAccessible) {
             return null;

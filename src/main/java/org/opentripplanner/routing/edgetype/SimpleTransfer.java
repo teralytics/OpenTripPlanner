@@ -21,6 +21,7 @@ import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.vertextype.TransitStop;
 
 import com.vividsolutions.jts.geom.LineString;
+import java.util.Locale;
 
 /**
  * Represents a transfer between stops that does not take the street network into account.
@@ -42,6 +43,18 @@ public class SimpleTransfer extends Edge {
 
     @Override
     public State traverse(State s0) {
+        // Forbid taking shortcuts composed of two transfers in a row
+        if (s0.backEdge instanceof SimpleTransfer) {
+            return null;
+        }
+        // FIXME major algorithmic error: Transfer results can dominate alighting from a vehicle.
+        if (s0.backEdge instanceof StreetTransitLink) {
+            return null;
+        }
+        if(distance > s0.getOptions().maxTransferWalkDistance) {
+            return null;
+        }
+        // Only transfer right after riding a vehicle.
         RoutingRequest rr = s0.getOptions();
         double walkspeed = rr.walkSpeed;
         StateEditor se = s0.edit(this);
@@ -56,6 +69,12 @@ public class SimpleTransfer extends Edge {
     @Override
     public String getName() {
         return fromv.getName() + " => " + tov.getName();
+    }
+    
+    @Override
+    public String getName(Locale locale) {
+        //TODO: localize
+        return this.getName();
     }
 
     @Override
@@ -74,4 +93,9 @@ public class SimpleTransfer extends Edge {
    public LineString getGeometry(){
 	   return this.geometry;
    }
+
+    @Override
+    public String toString() {
+        return "SimpleTransfer " + getName();
+    }
 }

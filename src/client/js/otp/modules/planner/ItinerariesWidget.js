@@ -43,7 +43,7 @@ otp.widgets.ItinerariesWidget =
             cssClass : module.itinerariesWidgetCssClass || 'otp-defaultItinsWidget',
             resizable : true,
             closeable : true,
-            persistOnClose : true,
+            persistOnClose : true
         });
         //this.$().addClass('otp-itinsWidget');
         //this.$().resizable();
@@ -174,7 +174,7 @@ otp.widgets.ItinerariesWidget =
             var stopId = itin.getFirstStopID();
             _.extend(params, {
                 startTransitStopId :  stopId,
-                date : this_.module.date,
+                date: moment(this_.module.date, otp.config.locale.time.date_format).format("MM-DD-YYYY"),
                 time : serviceBreakTime,
                 arriveBy : false
             });
@@ -221,7 +221,7 @@ otp.widgets.ItinerariesWidget =
             var stopId = itin.getFirstStopID();
             _.extend(params, {
                 startTransitStopId :  stopId,
-                date : moment(this_.module.date, "MM-DD-YYYY").add('days', 1).format("MM-DD-YYYY"),
+                date : moment(this_.module.date, otp.config.locale.time.date_format).add('days', 1).format("MM-DD-YYYY"),
                 time : serviceBreakTime,
                 arriveBy : true
             });
@@ -322,6 +322,7 @@ otp.widgets.ItinerariesWidget =
         if(mode === "RAIL") return '#b00';
         if(mode === "BUS") return '#0f0';
         if(mode === "TRAM") return '#f00';
+        if(mode === "AIRPLANE") return '#f0f';
         return '#aaa';
     },
 
@@ -361,16 +362,15 @@ otp.widgets.ItinerariesWidget =
                 }
             }
 
-            if(leg.mode === "WALK" || leg.mode === "BICYCLE") {
-                headerHtml += " "+otp.util.Itin.distanceString(leg.distance)+ pgettext("direction", " to ")+leg.to.name;
-
+            if(leg.mode === "WALK" || leg.mode === "BICYCLE" || leg.mode === "CAR") {
+                headerHtml += " "+otp.util.Itin.distanceString(leg.distance)+ pgettext("direction", " to ")+otp.util.Itin.getName(leg.to);
                 if(otp.config.municoderHostname) {
                     var spanId = this.newMunicoderRequest(leg.to.lat, leg.to.lon);
                     headerHtml += '<span id="'+spanId+'"></span>';
                 }
             }
             else if(leg.agencyId !== null) {
-                headerHtml += ": "+leg.agencyId+", ";
+                headerHtml += ": "+leg.agencyName+", ";
                 if(leg.route !== leg.routeLongName) {
                     headerHtml += "("+leg.route+") ";
                 }
@@ -428,7 +428,25 @@ otp.widgets.ItinerariesWidget =
 
         // add alerts, if applicable
         alerts = alerts || [];
-        if(itin.totalWalk > itin.tripPlan.queryParams.maxWalkDistance) {
+
+        // create an alert if this is a different day from the searched day
+        var queryTime = itin.tripPlan.queryParams.date + ' ' + itin.tripPlan.queryParams.time;
+        queryTime = moment(queryTime, 'MM-DD-YYYY HH:mma').unix()*1000
+        if(itin.differentServiceDayFromQuery(queryTime)) {
+            //TRANSLATORS: Shown as alert text before showing itinerary.
+            alerts = [ "This itinerary departs on a different day than the one searched for"];
+        }
+
+        // check for max walk exceedance
+        var maxWalkExceeded = false;
+        for(var i=0; i<itin.itinData.legs.length; i++) {
+            var leg = itin.itinData.legs[i];
+            if(leg.mode === "WALK" && leg.distance > itin.tripPlan.queryParams.maxWalkDistance) {
+                maxWalkExceeded = false;
+                break;
+            }
+        }
+        if(maxWalkExceeded) {
             //TRANSLATORS: Shown as alert text before showing itinerary.
             alerts.push(_tr("Total walk distance for this trip exceeds specified maximum"));
         }
@@ -468,6 +486,13 @@ otp.widgets.ItinerariesWidget =
             //TRANSLATORS: Total distance on a bike for this trip
             tripSummary.append('<div class="otp-itinTripSummaryLabel">' + _tr("Total Bike") + '</div><div class="otp-itinTripSummaryText">' +
                 otp.util.Itin.distanceString(bikeDistance) + '</div>')
+        }
+
+        var carDistance = itin.getModeDistance("CAR");
+        if(carDistance > 0) {
+            //TRANSLATORS: Total distance in a car for this trip
+            tripSummary.append('<div class="otp-itinTripSummaryLabel">' + _tr("Total drive") + '</div><div class="otp-itinTripSummaryText">' +
+                otp.util.Itin.distanceString(carDistance) + '</div>')
         }
 
         if(itin.hasTransit) {

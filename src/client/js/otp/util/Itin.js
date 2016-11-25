@@ -47,6 +47,21 @@ otp.util.Itin = {
     },
 
     /**
+     * Extracts the "lat,lng" from an OTP "name::lat,lng" or just "lat,lng"  if "name::" not present
+     *
+     * @param {string} locationStr an OTP GenericLocation string
+     * @return {{lat,lng}} the "lat" and "lng" component of an OTP location string "[name::]lat,lng". returns null if not present
+     */
+    getLocationLatLng : function(locationStr) {
+        var location = locationStr.indexOf("::") != -1 ?
+            locationStr.split("::")[1] : locationStr;
+        if (locationStr.indexOf(",") == -1) return null;
+
+        var [lat,lng]=location.split(",");
+        return {lat:lat,lng:lng};
+    },
+
+    /**
      * Extracts the unqualified mode from an OTP "mode_qualifier" string
      *
      * @param {string} qualifiedModeStr an OTP QualifiedMode string
@@ -70,7 +85,7 @@ otp.util.Itin = {
     },
 
     isTransit : function(mode) {
-        return mode === "TRANSIT" || mode === "SUBWAY" || mode === "RAIL" || mode === "BUS" || mode === "TRAM" || mode === "GONDOLA" || mode === "TRAINISH" || mode === "BUSISH";
+        return mode === "TRANSIT" || mode === "SUBWAY" || mode === "RAIL" || mode === "BUS" || mode === "TRAM" || mode === "GONDOLA" || mode === "AIRPLANE";
     },
 
     includesTransit : function(mode) {
@@ -196,11 +211,48 @@ otp.util.Itin = {
         //TRANSLATORS: Gondola, Suspended cable car. Typically used for aerial
         //cable cars where the car is suspended from the cable.
         'GONDOLA' : _tr('Aerial Tram'),
+        'AIRPLANE' : _tr('Airplane'),
     },
 
     modeString : function(mode) {
         if(mode in this.modeStrings) return this.modeStrings[mode];
         return mode;
+    },
+
+    vertexTypeStrings : {
+        //TRANSLATORS: WALK/CYCLE distance to [Bicycle rental station]
+        'BIKESHARE_EMPTY': _tr('Bicycle rental station'),
+        //TRANSLATORS: WALK/CYCLE distance to [Bicycle rental] {name}
+        'BIKESHARE': _tr('Bicycle rental'),
+    },
+
+    /**
+     * Returns localized place name
+     *
+     * based on vertexType and place name
+     *
+     * Currently only bike sharing is supported
+     * @param {string} place
+     * @return {string} localized place name
+     */
+    getName : function(place) {
+        if ('vertexType' in place) {
+            var vertexType = place.vertexType;
+            if (place.name === null) {
+                vertexType += "_EMPTY";
+            }
+            if (vertexType in this.vertexTypeStrings) {
+                return this.vertexTypeStrings[vertexType] +  " " + place.name;
+            } else {
+                if (vertexType !== "NORMAL") {
+                    console.log(vertexType + " not found in strings!");
+                }
+                return place.name;
+            }
+        } else {
+            console.log("vertexType missing in place");
+            return place.name;
+        }
     },
 
     getLegStepText : function(step, asHtml) {
@@ -229,7 +281,9 @@ otp.util.Itin = {
         else {
             //TODO: Absolute direction translation
             //TRANSLATORS: Start on [stret name] heading [compas direction]
-            if(!step.relativeDirection) text += _tr("Start on") + (asHtml ? " <b>" : " ") + step.streetName + (asHtml ? "</b>" : "") + _tr(" heading ") + (asHtml ? "<b>" : "") + this.getLocalizedAbsoluteDirectionString(step.absoluteDirection) + (asHtml ? "</b>" : "");
+            if(!step.relativeDirection || step.relativeDirection === "DEPART") {
+                text += _tr("Start on") + (asHtml ? " <b>" : " ") + step.streetName + (asHtml ? "</b>" : "") + _tr(" heading ") + (asHtml ? "<b>" : "") + this.getLocalizedAbsoluteDirectionString(step.absoluteDirection) + (asHtml ? "</b>" : "");
+            }
             else {
                 text += (asHtml ? "<b>" : "") + otp.util.Text.capitalizeFirstChar(this.getLocalizedRelativeDirectionString(step.relativeDirection)) +
                             (asHtml ? "</b>" : "") + ' ' +

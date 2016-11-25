@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Locale;
 
 /**
  * This is the standard implementation of an edge with fixed from and to Vertex instances;
@@ -44,18 +45,12 @@ public abstract class Edge implements Serializable {
      * Identifier of the edge. Negative means not set.
      */
     private int id;
-    
-    private long osmId;
 
     protected Vertex fromv;
 
     protected Vertex tov;
-    
-    protected Edge(Vertex v1, Vertex v2) {
-        this(0, -1L, v1, v2, false);
-    }
 
-    protected Edge(int fwdId, long osmId, Vertex v1, Vertex v2, boolean back) {
+    protected Edge(Vertex v1, Vertex v2) {
         if (v1 == null || v2 == null) {
             String err = String.format("%s constructed with null vertex : %s %s", this.getClass(),
                     v1, v2);
@@ -64,15 +59,7 @@ public abstract class Edge implements Serializable {
 
         this.fromv = v1;
         this.tov = v2;
-        this.osmId = osmId;
-        if (fwdId > 0 && back) {
-            this.id = -fwdId;
-        } else if (fwdId == 0) {
-            int genId = idGenerator.getId(this);
-            this.id = back ? -genId : genId;
-        } else {
-            throw new IllegalArgumentException(String.format("Incorrect forward id %s", id));
-        }
+        this.id = idGenerator.getId(this);
 
         // if (! vertexTypesValid()) {
         // throw new IllegalStateException(this.getClass() +
@@ -90,8 +77,6 @@ public abstract class Edge implements Serializable {
     public Vertex getToVertex() {
         return tov;
     }
-    
-    public long getOsmId() { return osmId; }
     
     /**
      * Returns true if this edge is partial - overriden by subclasses.
@@ -183,8 +168,21 @@ public abstract class Edge implements Serializable {
         return 0;
     }
 
+
+    /**
+     * Gets english localized name
+     * @return english localized name
+     */
     public abstract String getName();
 
+    /**
+     * Gets wanted localization
+     * @param locale wanted locale
+     * @return Localized in specified locale name
+     */
+    public abstract String getName(Locale locale);
+
+    // TODO Add comments about what a "bogus name" is.
     public boolean hasBogusName() {
         return false;
     }

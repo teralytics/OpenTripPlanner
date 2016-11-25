@@ -15,13 +15,13 @@ package org.opentripplanner.routing.core;
 
 import com.google.common.collect.Iterables;
 import com.vividsolutions.jts.geom.LineString;
+import org.onebusaway.gtfs.model.Agency;
 import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
 import org.opentripplanner.api.resource.DebugOutput;
 import org.opentripplanner.common.geometry.GeometryUtils;
-import org.opentripplanner.routing.algorithm.TraverseVisitor;
 import org.opentripplanner.routing.algorithm.strategies.EuclideanRemainingWeightHeuristic;
 import org.opentripplanner.routing.algorithm.strategies.RemainingWeightHeuristic;
 import org.opentripplanner.routing.algorithm.strategies.TrivialRemainingWeightHeuristic;
@@ -36,11 +36,12 @@ import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.location.StreetLocation;
 import org.opentripplanner.routing.location.TemporaryStreetLocation;
-import org.opentripplanner.routing.pathparser.PathParser;
 import org.opentripplanner.routing.services.OnBoardDepartService;
 import org.opentripplanner.routing.vertextype.TemporaryVertex;
 import org.opentripplanner.routing.vertextype.TransitStop;
+import org.opentripplanner.traffic.StreetSpeedSnapshot;
 import org.opentripplanner.updater.stoptime.TimetableSnapshotSource;
+import org.opentripplanner.util.NonLocalizedString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,6 +97,9 @@ public class RoutingContext implements Cloneable {
     /** The timetableSnapshot is a {@link TimetableSnapshot} for looking up real-time updates. */
     public final TimetableSnapshot timetableSnapshot;
 
+    /** A snapshot of street speeds for looking up real-time or historical traffic data */
+    public final StreetSpeedSnapshot streetSpeedSnapshot;
+
     /**
      * Cache lists of which transit services run on which midnight-to-midnight periods. This ties a TraverseOptions to a particular start time for the
      * duration of a search so the same options cannot be used for multiple searches concurrently. To do so this cache would need to be moved into
@@ -110,8 +114,6 @@ public class RoutingContext implements Cloneable {
      * timeouts is applied.
      */
     public long searchAbortTime = 0;
-
-    public PathParser[] pathParsers = new PathParser[] {};
 
     public Vertex startingStop;
 
@@ -188,8 +190,9 @@ public class RoutingContext implements Cloneable {
             double lengthRatio = partial.getLength() / parent.getLength();
             double length = streetEdge.getDistance() * lengthRatio;
 
+            //TODO: localize this
             String name = from.getLabel() + " to " + to.getLabel();
-            new TemporaryPartialStreetEdge(streetEdge, from, to, partial, name, length);
+            new TemporaryPartialStreetEdge(streetEdge, from, to, partial, new NonLocalizedString(name), length);
         }
     }
 
@@ -209,49 +212,75 @@ public class RoutingContext implements Cloneable {
         this.graph = graph;
         this.debugOutput.startedCalculating();
 
-        // the graph's snapshot may be frequently updated.
-        // Grab a reference to ensure a coherent view of the timetables throughout this search.
-        if (routingRequest.ignoreRealtimeUpdates) {
-            timetableSnapshot = null;
-        } else {
-            TimetableSnapshotSource timetableSnapshotSource = graph.timetableSnapshotSource;
-
-            if (timetableSnapshotSource == null) {
+        // The following block contains potentially resource-intensive things that are only relevant for transit.
+        // In normal searches the impact is low, because the routing context is only constructed once at the beginning
+        // of the search, but when computing transfers or doing large batch jobs, repeatedly re-constructing useless
+        // transit-specific information can have an impact.
+        if (opt.modes.isTransit()) {
+            // the graph's snapshot may be frequently updated.
+            // Grab a reference to ensure a coherent view of the timetables throughout this search.
+            if (routingRequest.ignoreRealtimeUpdates) {
                 timetableSnapshot = null;
             } else {
-                timetableSnapshot = timetableSnapshotSource.getTimetableSnapshot();
+                TimetableSnapshotSource timetableSnapshotSource = graph.timetableSnapshotSource;
+                if (timetableSnapshotSource == null) {
+                    timetableSnapshot = null;
+                } else {
+                    timetableSnapshot = timetableSnapshotSource.getTimetableSnapshot();
+                }
             }
+            calendarService = graph.getCalendarService();
+            setServiceDays();
+        } else {
+            timetableSnapshot = null;
+            calendarService = null;
         }
-        calendarService = graph.getCalendarService();
-        setServiceDays();
+
+        // do the same for traffic
+        if (graph.streetSpeedSource != null)
+            this.streetSpeedSnapshot = graph.streetSpeedSource.getSnapshot();
+        else
+            this.streetSpeedSnapshot = null;
+
 
         Edge fromBackEdge = null;
         Edge toBackEdge = null;
         if (findPlaces) {
-            // normal mode, search for vertices based RoutingRequest
-            if (!opt.batch || opt.arriveBy) {
-                // non-batch mode, or arriveBy batch mode: we need a to vertex
+            if (opt.batch) {
+                // batch mode: find an OSM vertex, don't split
+                // We do this so that we are always linking to the same thing in analyst mode
+                // even if the transit network has changed.
+                // TODO offset time by distance to nearest OSM node?
+                if (opt.arriveBy) {
+                    // TODO what if there is no coordinate but instead a named place?
+                    toVertex = graph.streetIndex.getSampleVertexAt(opt.to.getCoordinate(), true);
+                    fromVertex = null;
+                }
+                else {
+                    fromVertex = graph.streetIndex.getSampleVertexAt(opt.from.getCoordinate(), false);
+                    toVertex = null;
+                }
+            }
+
+            else {
+                // normal mode, search for vertices based RoutingRequest and split streets
                 toVertex = graph.streetIndex.getVertexForLocation(opt.to, opt, true);
                 if (opt.to.hasEdgeId()) {
                     toBackEdge = graph.getEdgeById(opt.to.edgeId);
                 }
-            } else {
-                toVertex = null;
-            }
-            if (opt.startingTransitTripId != null && !opt.arriveBy) {
-                // Depart on-board mode: set the from vertex to "on-board" state
-                OnBoardDepartService onBoardDepartService = graph.getService(OnBoardDepartService.class);
-                if (onBoardDepartService == null)
-                    throw new UnsupportedOperationException("Missing OnBoardDepartService");
-                fromVertex = onBoardDepartService.setupDepartOnBoard(this);
-            } else if (!opt.batch || !opt.arriveBy) {
-                // non-batch mode, or depart-after batch mode: we need a from vertex
-                fromVertex = graph.streetIndex.getVertexForLocation(opt.from, opt, false);
-                if (opt.from.hasEdgeId()) {
-                    fromBackEdge = graph.getEdgeById(opt.from.edgeId);
+
+                if (opt.startingTransitTripId != null && !opt.arriveBy) {
+                    // Depart on-board mode: set the from vertex to "on-board" state
+                    OnBoardDepartService onBoardDepartService = graph.getService(OnBoardDepartService.class);
+                    if (onBoardDepartService == null)
+                        throw new UnsupportedOperationException("Missing OnBoardDepartService");
+                    fromVertex = onBoardDepartService.setupDepartOnBoard(this);
+                } else {
+                    fromVertex = graph.streetIndex.getVertexForLocation(opt.from, opt, false);
+                    if (opt.from.hasEdgeId()) {
+                        fromBackEdge = graph.getEdgeById(opt.from.edgeId);
+                    }
                 }
-            } else {
-                fromVertex = null;
             }
         } else {
             // debug mode, force endpoint vertices to those specified rather than searching
@@ -345,12 +374,14 @@ public class RoutingContext implements Cloneable {
             return;
         }
 
-        for (String agency : graph.getAgencyIds()) {
-            addIfNotExists(this.serviceDays, new ServiceDay(graph, serviceDate.previous(),
-                    calendarService, agency));
-            addIfNotExists(this.serviceDays, new ServiceDay(graph, serviceDate, calendarService, agency));
-            addIfNotExists(this.serviceDays, new ServiceDay(graph, serviceDate.next(),
-                    calendarService, agency));
+        for (String feedId : graph.getFeedIds()) {
+            for (Agency agency : graph.getAgencies(feedId)) {
+                addIfNotExists(this.serviceDays, new ServiceDay(graph, serviceDate.previous(),
+                        calendarService, agency.getId()));
+                addIfNotExists(this.serviceDays, new ServiceDay(graph, serviceDate, calendarService, agency.getId()));
+                addIfNotExists(this.serviceDays, new ServiceDay(graph, serviceDate.next(),
+                        calendarService, agency.getId()));
+            }
         }
     }
 

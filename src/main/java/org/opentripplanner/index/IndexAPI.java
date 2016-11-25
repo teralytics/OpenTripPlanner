@@ -51,7 +51,10 @@ import org.opentripplanner.util.model.EncodedPolylineBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -64,8 +67,12 @@ import javax.ws.rs.core.UriInfo;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+// TODO move to org.opentripplanner.api.resource, this is a Jersey resource class
 
 @Path("/routers/{routerId}/index")    // It would be nice to get rid of the final /index.
 @Produces(MediaType.APPLICATION_JSON) // One @Produces annotation for all endpoints.
@@ -95,18 +102,25 @@ public class IndexAPI {
    /* Needed to check whether query parameter map is empty, rather than chaining " && x == null"s */
    @Context UriInfo uriInfo;
 
+    @GET
+    @Path("/feeds")
+    public Response getFeeds() {
+        return Response.status(Status.OK).entity(index.agenciesForFeedId.keySet()).build();
+    }
+
    /** Return a list of all agencies in the graph. */
    @GET
-   @Path("/agencies")
-   public Response getAgencies () {
-       return Response.status(Status.OK).entity(index.agencyForId.values()).build();
+   @Path("/agencies/{feedId}")
+   public Response getAgencies (@PathParam("feedId") String feedId) {
+       return Response.status(Status.OK).entity(
+               index.agenciesForFeedId.getOrDefault(feedId, new HashMap<>()).values()).build();
    }
 
    /** Return specific agency in the graph, by ID. */
    @GET
-   @Path("/agencies/{agencyId}")
-   public Response getAgency (@PathParam("agencyId") String agencyId) {
-       for (Agency agency : index.agencyForId.values()) {
+   @Path("/agencies/{feedId}/{agencyId}")
+   public Response getAgency (@PathParam("feedId") String feedId, @PathParam("agencyId") String agencyId) {
+       for (Agency agency : index.agenciesForFeedId.get(feedId).values()) {
            if (agency.getId().equals(agencyId)) {
                return Response.status(Status.OK).entity(agency).build();
            }
@@ -116,10 +130,10 @@ public class IndexAPI {
 
     /** Return all routes for the specific agency. */
     @GET
-    @Path("/agencies/{agencyId}/routes")
-    public Response getAgencyRoutes (@PathParam("agencyId") String agencyId) {
+    @Path("/agencies/{feedId}/{agencyId}/routes")
+    public Response getAgencyRoutes (@PathParam("feedId") String feedId, @PathParam("agencyId") String agencyId) {
         Collection<Route> routes = index.routeForId.values();
-        Agency agency = index.agencyForId.get(agencyId);
+        Agency agency = index.agenciesForFeedId.get(feedId).get(agencyId);
         if (agency == null) return Response.status(Status.NOT_FOUND).entity(MSG_404).build();
         Collection<Route> agencyRoutes = new ArrayList<>();
         for (Route route: routes) {
@@ -224,13 +238,22 @@ public class IndexAPI {
        return Response.status(Status.OK).entity(PatternShort.list(patterns)).build();
    }
 
-    /** Return upcoming vehicle arrival/departure times at the given stop. */
+    /** Return upcoming vehicle arrival/departure times at the given stop.
+     *
+     * @param stopIdString Stop ID in Agency:Stop ID format
+     * @param startTime Start time for the search. Seconds from UNIX epoch
+     * @param timeRange Searches forward for timeRange seconds from startTime
+     * @param numberOfDepartures Number of departures to fetch per pattern
+     */
     @GET
     @Path("/stops/{stopId}/stoptimes")
-    public Response getStoptimesForStop (@PathParam("stopId") String stopIdString) {
+    public Response getStoptimesForStop (@PathParam("stopId") String stopIdString,
+                                         @QueryParam("startTime") long startTime,
+                                         @QueryParam("timeRange") @DefaultValue("86400") int timeRange,
+                                         @QueryParam("numberOfDepartures") @DefaultValue("2") int numberOfDepartures) {
         Stop stop = index.stopForId.get(GtfsLibrary.convertIdFromString(stopIdString));
         if (stop == null) return Response.status(Status.NOT_FOUND).entity(MSG_404).build();
-        return Response.status(Status.OK).entity(index.stopTimesForStop(stop)).build();
+        return Response.status(Status.OK).entity(index.stopTimesForStop(stop, startTime, timeRange, numberOfDepartures)).build();
     }
 
     /**
@@ -424,9 +447,10 @@ public class IndexAPI {
        Trip trip = index.tripForId.get(tripId);
        if (trip != null) {
            TripPattern pattern = index.patternForTrip.get(trip);
-           Timetable table = pattern.scheduledTimetable;
+           // Note, we need the updated timetable not the scheduled one (which contains no real-time updates).
+           Timetable table = index.currentUpdatedTimetableForTripPattern(pattern);
            return Response.status(Status.OK).entity(TripTimeShort.fromTripTimes(table, trip)).build();
-       } else { 
+       } else {
            return Response.status(Status.NOT_FOUND).entity(MSG_404).build();
        }
    }
@@ -536,6 +560,7 @@ public class IndexAPI {
     @GET
     @Path("/clusters")
     public Response getAllStopClusters () {
+        index.clusterStopsAsNeeded();
         // use 'detail' field common to all API methods in this class
         List<StopClusterDetail> scl = StopClusterDetail.list(index.stopClusterForId.values(), detail);
         return Response.status(Status.OK).entity(scl).build();
@@ -545,6 +570,7 @@ public class IndexAPI {
     @GET
     @Path("/clusters/{clusterId}")
     public Response getStopCluster (@PathParam("clusterId") String clusterIdString) {
+        index.clusterStopsAsNeeded();
         StopCluster cluster = index.stopClusterForId.get(clusterIdString);
         if (cluster != null) {
             return Response.status(Status.OK).entity(new StopClusterDetail(cluster, true)).build();
@@ -552,6 +578,33 @@ public class IndexAPI {
             return Response.status(Status.NOT_FOUND).entity(MSG_404).build();
         }
     }
+
+    @POST
+    @Path("/graphql")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response getGraphQL (HashMap<String, Object> query) {
+        Map<String, Object> variables;
+        if (query.get("variables") instanceof Map) {
+            variables = (Map) query.get("variables");
+        } else {
+            variables = new HashMap<>();
+        }
+        return index.getGraphQLResponse((String) query.get("query"), variables);
+    }
+
+    @POST
+    @Path("/graphql")
+    @Consumes("application/graphql")
+    public Response getGraphQL (String query) {
+        return index.getGraphQLResponse(query, new HashMap<>());
+    }
+
+//    @GET
+//    @Path("/graphql")
+//    public Response getGraphQL (@QueryParam("query") String query,
+//                                @QueryParam("variables") HashMap<String, Object> variables) {
+//        return index.getGraphQLResponse(query, variables == null ? new HashMap<>() : variables);
+//    }
 
     /** Represents a transfer from a stop */
     private static class Transfer {

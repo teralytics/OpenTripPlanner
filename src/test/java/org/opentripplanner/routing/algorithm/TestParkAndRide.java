@@ -15,6 +15,7 @@ package org.opentripplanner.routing.algorithm;
 
 import junit.framework.TestCase;
 import org.opentripplanner.common.geometry.GeometryUtils;
+import org.opentripplanner.routing.algorithm.strategies.InterleavedBidirectionalHeuristic;
 import org.opentripplanner.routing.bike_park.BikePark;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
@@ -29,6 +30,7 @@ import org.opentripplanner.routing.vertextype.BikeParkVertex;
 import org.opentripplanner.routing.vertextype.IntersectionVertex;
 import org.opentripplanner.routing.vertextype.ParkAndRideVertex;
 import org.opentripplanner.routing.vertextype.StreetVertex;
+import org.opentripplanner.util.NonLocalizedString;
 
 /**
  * Test P+R (both car P+R and bike P+R).
@@ -84,7 +86,7 @@ public class TestParkAndRide extends TestCase {
 
         // So we Add a P+R at B.
         ParkAndRideVertex PRB = new ParkAndRideVertex(graph, "P+R", "P+R.B", 0.001, 45.00001,
-                "P+R B");
+                new NonLocalizedString("P+R B"));
         new ParkAndRideEdge(PRB);
         new ParkAndRideLinkEdge(PRB, B);
         new ParkAndRideLinkEdge(B, PRB);
@@ -106,9 +108,37 @@ public class TestParkAndRide extends TestCase {
         path = tree.getPath(C, false);
         assertNull(path);
 
-        // But we can go from A to C with CAR+WALK mode using P+R.
+        // But we can go from A to C with CAR+WALK mode using P+R. arriveBy false
         options = new RoutingRequest("WALK,CAR_PARK,TRANSIT");
+        //options.arriveBy
         options.setRoutingContext(graph, A, C);
+        tree = aStar.getShortestPathTree(options);
+        path = tree.getPath(C, false);
+        assertNotNull(path);
+
+        // But we can go from A to C with CAR+WALK mode using P+R. arriveBy true
+        options = new RoutingRequest("WALK,CAR_PARK,TRANSIT");
+        options.setArriveBy(true);
+        options.setRoutingContext(graph, A, C);
+        tree = aStar.getShortestPathTree(options);
+        path = tree.getPath(A, false);
+        assertNotNull(path);
+
+
+        // But we can go from A to C with CAR+WALK mode using P+R. arriveBy true interleavedBidiHeuristic
+        options = new RoutingRequest("WALK,CAR_PARK,TRANSIT");
+        options.setArriveBy(true);
+        options.setRoutingContext(graph, A, C);
+        options.rctx.remainingWeightHeuristic = new InterleavedBidirectionalHeuristic();
+        tree = aStar.getShortestPathTree(options);
+        path = tree.getPath(A, false);
+        assertNotNull(path);
+
+        // But we can go from A to C with CAR+WALK mode using P+R. arriveBy false interleavedBidiHeuristic
+        options = new RoutingRequest("WALK,CAR_PARK,TRANSIT");
+        //options.arriveBy
+        options.setRoutingContext(graph, A, C);
+        options.rctx.remainingWeightHeuristic = new InterleavedBidirectionalHeuristic();
         tree = aStar.getShortestPathTree(options);
         path = tree.getPath(C, false);
         assertNotNull(path);

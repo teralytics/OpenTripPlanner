@@ -166,7 +166,8 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
     }
 
     public OSMLevel getLevelForWay(OSMWithTags way) {
-        return wayLevels.get(way);
+        OSMLevel level = wayLevels.get(way);
+        return level != null ? level : OSMLevel.DEFAULT;
     }
 
     public boolean isNodeSharedByMultipleAreas(Long nodeId) {
@@ -219,12 +220,13 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
             areaWaysById.put(wayId, way);
         }
 
-        applyLevelsForWay(way);
-
         /* filter out ways that are not relevant for routing */
         if (!(OSMFilter.isWayRoutable(way) || way.isParkAndRide() || way.isBikeParking())) {
             return;
         }
+
+        applyLevelsForWay(way);
+
         /* An area can be specified as such, or be one by default as an amenity */
         if ((way.isTag("area", "yes") || way.isTag("amenity", "parking") || way.isTag("amenity",
                 "bicycle_parking")) && way.getNodeRefs().size() > 2) {
@@ -612,7 +614,7 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
             }
             try {
                 newArea(new Area(way, Arrays.asList(way), Collections.<OSMWay> emptyList(), nodesById));
-            } catch (Area.AreaConstructionException e) {
+            } catch (Area.AreaConstructionException|Ring.RingConstructionException e) {
                 // this area cannot be constructed, but we already have all the
                 // necessary nodes to construct it. So, something must be wrong with
                 // the area; we'll mark it as processed so that we don't retry.
@@ -667,7 +669,7 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
             processedAreas.add(relation);
             try {
                 newArea(new Area(relation, outerWays, innerWays, nodesById));
-            } catch (Area.AreaConstructionException e) {
+            } catch (Area.AreaConstructionException|Ring.RingConstructionException e) {
                 continue;
             }
 
@@ -760,7 +762,8 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
             }
         }
         if (from == -1 || to == -1 || via == -1) {
-            LOG.warn(addBuilderAnnotation(new TurnRestrictionBad(relation.getId())));
+            LOG.warn(addBuilderAnnotation(new TurnRestrictionBad(relation.getId(),
+                "One of from|via|to edges are empty in relation")));
             return;
         }
 
@@ -779,23 +782,31 @@ public class OSMDatabase implements OpenStreetMapContentHandler {
 
         TurnRestrictionTag tag;
         if (relation.isTag("restriction", "no_right_turn")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.RIGHT);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.RIGHT,
+                relation.getId());
         } else if (relation.isTag("restriction", "no_left_turn")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.LEFT);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.LEFT,
+                relation.getId());
         } else if (relation.isTag("restriction", "no_straight_on")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.STRAIGHT);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.STRAIGHT,
+                relation.getId());
         } else if (relation.isTag("restriction", "no_u_turn")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.U);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.NO_TURN, Direction.U,
+                relation.getId());
         } else if (relation.isTag("restriction", "only_straight_on")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.STRAIGHT);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.STRAIGHT,
+                relation.getId());
         } else if (relation.isTag("restriction", "only_right_turn")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.RIGHT);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.RIGHT,
+                relation.getId());
         } else if (relation.isTag("restriction", "only_left_turn")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.LEFT);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.LEFT,
+                relation.getId());
         } else if (relation.isTag("restriction", "only_u_turn")) {
-            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.U);
+            tag = new TurnRestrictionTag(via, TurnRestrictionType.ONLY_TURN, Direction.U,
+                relation.getId());
         } else {
-            LOG.warn(addBuilderAnnotation(new TurnRestrictionUnknown(relation.getTag("restriction"))));
+            LOG.warn(addBuilderAnnotation(new TurnRestrictionUnknown(relation.getId(), relation.getTag("restriction"))));
             return;
         }
         tag.modes = modes.clone();

@@ -19,6 +19,7 @@ import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.vertextype.TransitStationStop;
 import com.vividsolutions.jts.geom.LineString;
+import java.util.Locale;
 
 /**
  * A transfer directly between two stops without using the street network.
@@ -76,12 +77,19 @@ public class TransferEdge extends Edge {
         return "Transfer";
     }
 
+    @Override
+    public String getName(Locale locale) {
+        //TODO: localize
+        return this.getName();
+    }
+
     public State traverse(State s0) {
         /* Disallow chaining of transfer edges. TODO: This should really be guaranteed by the PathParser
            but the default Pathparser is currently very hard to read because
            we need a complement operator. */
         if (s0.getBackEdge() instanceof TransferEdge) return null;
         if (s0.getOptions().wheelchairAccessible && !wheelchairAccessible) return null;
+        if (this.getDistance() > s0.getOptions().maxTransferWalkDistance) return null;
         StateEditor s1 = s0.edit(this);
         s1.incrementTimeInSeconds(time);
         s1.incrementWeight(time);

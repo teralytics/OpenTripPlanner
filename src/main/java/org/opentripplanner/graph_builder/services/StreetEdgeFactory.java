@@ -20,6 +20,7 @@ import org.opentripplanner.routing.edgetype.StreetTraversalPermission;
 import org.opentripplanner.routing.vertextype.IntersectionVertex;
 
 import com.vividsolutions.jts.geom.LineString;
+import org.opentripplanner.util.I18NString;
 
 /**
  * Edge factory to build StreetEdge and AreaEdge.
@@ -30,12 +31,12 @@ import com.vividsolutions.jts.geom.LineString;
  */
 public interface StreetEdgeFactory {
 
-    public StreetEdge createEdge(int id, long osmId, IntersectionVertex startEndpoint, IntersectionVertex endEndpoint,
-            LineString geometry, String name, double length, StreetTraversalPermission permissions,
+    public StreetEdge createEdge(IntersectionVertex startEndpoint, IntersectionVertex endEndpoint,
+            LineString geometry, I18NString name, double length, StreetTraversalPermission permissions,
             boolean back);
 
-    public AreaEdge createAreaEdge(int id, long osmId, IntersectionVertex startEndpoint,
-            IntersectionVertex endEndpoint, LineString geometry, String name, double length,
+    public AreaEdge createAreaEdge(IntersectionVertex startEndpoint,
+            IntersectionVertex endEndpoint, LineString geometry, I18NString name, double length,
             StreetTraversalPermission permissions, boolean back, AreaEdgeList area);
 
 }

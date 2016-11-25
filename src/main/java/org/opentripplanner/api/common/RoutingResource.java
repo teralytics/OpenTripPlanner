@@ -33,6 +33,7 @@ import org.opentripplanner.standalone.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.opentripplanner.util.ResourceBundleSingleton;
 /**
  * This class defines all the JAX-RS query parameters for a path search as fields, allowing them to 
  * be inherited by other REST resource classes (the trip planner and the Analyst WMS or tile 
@@ -332,7 +333,7 @@ public abstract class RoutingResource {
 
     @QueryParam("locale")
     private String locale;
-    
+
     /**
      * If true, realtime updates are ignored during this search.
      */
@@ -345,7 +346,13 @@ public abstract class RoutingResource {
      */
     @QueryParam("disableRemainingWeightHeuristic")
     protected Boolean disableRemainingWeightHeuristic;
-    
+
+    @QueryParam("maxHours")
+    private Double maxHours;
+
+    @QueryParam("disableAlertFiltering")
+    private Boolean disableAlertFiltering;
+
     /* 
      * somewhat ugly bug fix: the graphService is only needed here for fetching per-graph time zones. 
      * this should ideally be done when setting the routing context, but at present departure/
@@ -404,8 +411,10 @@ public abstract class RoutingResource {
         if (numItineraries != null)
             request.setNumItineraries(numItineraries);
 
-        if (maxWalkDistance != null)
+        if (maxWalkDistance != null) {
             request.setMaxWalkDistance(maxWalkDistance);
+            request.maxTransferWalkDistance = maxWalkDistance;
+        }
 
         if (maxPreTransitTime != null)
             request.setMaxPreTransitTime(maxPreTransitTime);
@@ -512,7 +521,10 @@ public abstract class RoutingResource {
             request.setOptimize(optimize);
 
         /* Temporary code to get bike/car parking and renting working. */
-        if (modes != null) modes.applyToRoutingRequest(request);
+        if (modes != null) {
+            modes.applyToRoutingRequest(request);
+            request.setModes(request.modes);
+        }
 
         if (request.allowBikeRental && bikeSpeed == null) {
             //slower bike speed for bike sharing, based on empirical evidence from DC.
@@ -561,25 +573,14 @@ public abstract class RoutingResource {
         if (disableRemainingWeightHeuristic != null)
             request.disableRemainingWeightHeuristic = disableRemainingWeightHeuristic;
 
-        // TODO move into a setter on RoutingRequest
-        String localeSpec = locale != null ? locale : "en";
-        String[] localeSpecParts = localeSpec.split("_");
-        Locale locale;
-        switch (localeSpecParts.length) {
-            case 1:
-                locale = new Locale(localeSpecParts[0]);
-                break;
-            case 2:
-                locale = new Locale(localeSpecParts[0]);
-                break;
-            case 3:
-                locale = new Locale(localeSpecParts[0]);
-                break;
-            default:
-                LOG.debug("Bogus locale " + localeSpec + ", defaulting to en");
-                locale = new Locale("en");
-        }
-        request.locale = locale;
+        if (maxHours != null)
+            request.maxHours = maxHours;
+
+        if (disableAlertFiltering != null)
+            request.disableAlertFiltering = disableAlertFiltering;
+
+        //getLocale function returns defaultLocale if locale is null
+        request.locale = ResourceBundleSingleton.INSTANCE.getLocale(locale);
         return request;
     }
 

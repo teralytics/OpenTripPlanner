@@ -92,6 +92,19 @@ public class Place {
     public Integer stopSequence;
 
     /**
+     * Type of vertex. (Normal, Bike sharing station, Bike P+R, Transit stop)
+     * Mostly used for better localization of bike sharing and P+R station names
+     */
+    @XmlAttribute
+    @JsonSerialize
+    public VertexType vertexType;
+
+    /**
+     * In case the vertex is of type Bike sharing station.
+     */
+    public String bikeShareId;
+
+    /**
      * Returns the geometry in GeoJSON format
      * @return
      */
@@ -107,6 +120,7 @@ public class Place {
         this.lon = lon;
         this.lat = lat;
         this.name = name;
+	    this.vertexType = VertexType.NORMAL;
     }
 
     public Place(Double lon, Double lat, String name, Calendar arrival, Calendar departure) {

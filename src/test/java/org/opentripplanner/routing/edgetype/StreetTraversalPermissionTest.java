@@ -54,8 +54,7 @@ public class StreetTraversalPermissionTest {
         assertTrue(perm1.allows(TraverseMode.WALK));
 
         // StreetTraversalPermission is not used for public transit.
-        assertFalse(perm1.allows(TraverseMode.BUS));
-        assertFalse(perm1.allows(TraverseMode.TRAINISH));
+        assertFalse(perm1.allows(TraverseMode.TRANSIT));
     }
 
     @Test
@@ -63,7 +62,7 @@ public class StreetTraversalPermissionTest {
         StreetTraversalPermission perm1 = StreetTraversalPermission.BICYCLE_AND_CAR;
         assertTrue(perm1.allows(TraverseModeSet.allModes()));
         assertTrue(perm1.allows(new TraverseModeSet(TraverseMode.CAR, TraverseMode.BICYCLE)));
-        assertTrue(perm1.allows(new TraverseModeSet(TraverseMode.BICYCLE, TraverseMode.TRAINISH, TraverseMode.FERRY)));
+        assertTrue(perm1.allows(new TraverseModeSet(TraverseMode.BICYCLE, TraverseMode.RAIL, TraverseMode.FERRY)));
         assertFalse(perm1.allows(new TraverseModeSet(TraverseMode.WALK)));
     }
 
@@ -76,5 +75,18 @@ public class StreetTraversalPermissionTest {
         perm = StreetTraversalPermission.NONE;
         assertFalse(perm.allowsAnything());
         assertTrue(perm.allowsNothing());
+    }
+
+    @Test
+    public void testIntersect() {
+        StreetTraversalPermission perm = StreetTraversalPermission.ALL;
+        StreetTraversalPermission bike_walk = StreetTraversalPermission.PEDESTRIAN_AND_BICYCLE;
+
+        StreetTraversalPermission combined = perm.intersection(bike_walk);
+
+        assertTrue(perm.allows(StreetTraversalPermission.ALL));
+        assertTrue(combined.allows(StreetTraversalPermission.PEDESTRIAN_AND_BICYCLE));
+        assertFalse(combined.allows(StreetTraversalPermission.CAR));
+        assertTrue(bike_walk.allows(StreetTraversalPermission.PEDESTRIAN_AND_BICYCLE));
     }
 }

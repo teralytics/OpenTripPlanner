@@ -1,25 +1,8 @@
 package org.opentripplanner.api.resource;
 
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.xml.bind.annotation.XmlRootElement;
-
+import com.google.common.collect.Maps;
+import com.vividsolutions.jts.geom.*;
+import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.geotools.referencing.GeodeticCalculator;
 import org.opensphere.geometry.algorithm.ConcaveHull;
@@ -40,15 +23,13 @@ import org.opentripplanner.standalone.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.linearref.LengthIndexedLine;
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.io.StringWriter;
+import java.util.*;
 
 /**
  * This is the original Isochrone class provided by Stefan Steineger.
@@ -185,8 +166,7 @@ public class SIsochrone extends RoutingResource {
         // set the switch-time for shed/area calculation, i.e. to decide if the hull is calculated based on points or on edges
         TraverseModeSet modes = sptRequestA.modes;
         LOG.debug("mode(s): " + modes);
-        if ((modes.contains(TraverseMode.TRANSIT)) || (modes.contains(TraverseMode.BUSISH))
-                || (modes.contains(TraverseMode.TRAINISH))) {
+        if (modes.contains(TraverseMode.TRANSIT)) {
             shedCalcMethodSwitchTimeInSec = 60 * 20; // 20min (use 20min for transit, since buses may not come all the time)
         } else if (modes.contains(TraverseMode.CAR)) {
             shedCalcMethodSwitchTimeInSec = 60 * 10; // 10min
@@ -458,7 +438,7 @@ public class SIsochrone extends RoutingResource {
                 LOG.debug("done");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Exception creating isochrone", e);
         }
         return sw.toString();
     }

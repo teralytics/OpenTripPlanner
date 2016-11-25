@@ -5,25 +5,22 @@ import com.beust.jcommander.internal.Sets;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
+
 import org.opentripplanner.api.resource.CoordinateArrayListSequence;
 import org.opentripplanner.api.resource.SimpleIsochrone;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.common.geometry.PackedCoordinateSequence;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.routing.algorithm.EarliestArrivalSearch;
-import org.opentripplanner.routing.automata.DFA;
-import org.opentripplanner.routing.automata.Nonterminal;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.edgetype.StreetEdge;
-import org.opentripplanner.routing.edgetype.StreetTransitLink;
 import org.opentripplanner.routing.edgetype.TripPattern;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.impl.StreetVertexIndexServiceImpl;
-import org.opentripplanner.routing.pathparser.PathParser;
 import org.opentripplanner.routing.services.StreetVertexIndexService;
 import org.opentripplanner.routing.spt.GraphPath;
 import org.opentripplanner.routing.spt.ShortestPathTree;
@@ -32,9 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-
-import static org.opentripplanner.routing.automata.Nonterminal.seq;
-import static org.opentripplanner.routing.automata.Nonterminal.star;
 
 /**
  * These library functions are used by the streetless and streetful stop linkers, and in profile transfer generation.
@@ -52,7 +46,6 @@ public class NearbyStopFinder {
     private double radius;
 
     /* Fields used when finding stops via the street network. */
-    private PathParser parsers[];
     private EarliestArrivalSearch earliestArrivalSearch;
 
     /* Fields used when finding stops without a street network. */
@@ -75,7 +68,6 @@ public class NearbyStopFinder {
         this.useStreets = useStreets;
         this.radius = radius;
         if (useStreets) {
-            parsers = new PathParser[] {new TransferFinderParser()};
             earliestArrivalSearch = new EarliestArrivalSearch();
             earliestArrivalSearch.maxDuration = (int) radius; // FIXME assuming 1 m/sec, use hard distance limiting to match straight-line mode
         } else {
@@ -135,7 +127,6 @@ public class NearbyStopFinder {
         RoutingRequest routingRequest = new RoutingRequest(TraverseMode.WALK);
         routingRequest.clampInitialWait = (0L);
         routingRequest.setRoutingContext(graph, originVertex, null);
-        routingRequest.rctx.pathParsers = parsers;
         ShortestPathTree spt = earliestArrivalSearch.getShortestPathTree(routingRequest);
 
         List<StopAtDistance> stopsFound = Lists.newArrayList();
@@ -198,35 +189,6 @@ public class NearbyStopFinder {
 
         public String toString() {
             return String.format("stop %s at %.1f meters", tstop, dist);
-        }
-
-    }
-
-    /** Accept only paths that leave a transit stop, pass through the street network, and end at another transit stop. */
-    private static class TransferFinderParser extends PathParser {
-
-        private static final int OTHER  = 0;
-        private static final int STREET = 1;
-        private static final int LINK   = 2;
-        private final org.opentripplanner.routing.automata.DFA DFA;
-
-        TransferFinderParser () {
-            Nonterminal streets = star(STREET);
-            Nonterminal itinerary = seq(LINK, streets, LINK);
-            DFA = itinerary.toDFA().minimize();
-        }
-
-        @Override
-        public int terminalFor (State state) {
-            Edge edge = state.getBackEdge();
-            if (edge instanceof StreetEdge) return STREET;
-            if (edge instanceof StreetTransitLink) return LINK;
-            return OTHER;
-        }
-
-        @Override
-        protected DFA getDFA () {
-            return this.DFA;
         }
 
     }

@@ -15,6 +15,7 @@ package org.opentripplanner.routing.edgetype;
 
 import java.util.BitSet;
 
+import java.util.Locale;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.Trip;
 import org.opentripplanner.routing.core.RoutingContext;
@@ -113,6 +114,12 @@ public class TransitBoardAlight extends TablePatternEdge implements OnboardEdge 
         return boarding ? "leave street network for transit network" : 
             "leave transit network for street network";
     }
+    
+    @Override
+    public String getName(Locale locale) {
+        //TODO: localize
+        return this.getName();
+    }
 
     @Override
     public State traverse(State state0) {
@@ -129,6 +136,11 @@ public class TransitBoardAlight extends TablePatternEdge implements OnboardEdge 
     public State traverse(State s0, long arrivalTimeAtStop) {
         RoutingContext rctx    = s0.getContext();
         RoutingRequest options = s0.getOptions();
+
+        // Forbid taking shortcuts composed of two board-alight edges in a row. Also avoids spurious leg transitions.
+        if (s0.backEdge instanceof TransitBoardAlight) {
+            return null;
+        }
 
         /* If the user requested a wheelchair accessible trip, check whether and this stop is not accessible. */
         if (options.wheelchairAccessible && ! getPattern().wheelchairAccessible(stopIndex)) {
@@ -161,6 +173,21 @@ public class TransitBoardAlight extends TablePatternEdge implements OnboardEdge 
             // arrives/departs, so previousStop is direction-dependent.
             s1.setPreviousStop(getStop()); 
             s1.setLastPattern(this.getPattern());
+            if (boarding) {
+                int boardingTime = options.getBoardTime(this.getPattern().mode);
+                if (boardingTime != 0) {
+                    // When traveling backwards the time travels also backwards
+                    s1.incrementTimeInSeconds(boardingTime);
+                    s1.incrementWeight(boardingTime * options.waitReluctance);
+                }
+            } else {
+                int alightTime = options.getAlightTime(this.getPattern().mode);
+                if (alightTime != 0) {
+                    s1.incrementTimeInSeconds(alightTime);
+                    s1.incrementWeight(alightTime * options.waitReluctance);
+                    // TODO: should we have different cost for alighting and boarding compared to regular waiting?
+                }
+            }
 
             /* Determine the wait. */
             if (arrivalTimeAtStop > 0) { // FIXME what is this arrivalTimeAtStop?

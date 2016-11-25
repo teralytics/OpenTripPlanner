@@ -13,30 +13,37 @@
 
 package org.opentripplanner.common.geometry;
 
-import java.util.List;
-
-import org.geojson.GeoJsonObject;
-import org.geojson.LngLatAlt;
-import org.opentripplanner.analyst.UnsupportedGeometryException;
-import org.opentripplanner.common.model.P2;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateSequence;
-import com.vividsolutions.jts.geom.CoordinateSequenceFactory;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.linearref.LengthLocationMap;
 import com.vividsolutions.jts.linearref.LinearLocation;
 import com.vividsolutions.jts.linearref.LocationIndexedLine;
+import org.geojson.GeoJsonObject;
+import org.geojson.LngLatAlt;
+import org.geotools.referencing.CRS;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opentripplanner.analyst.UnsupportedGeometryException;
+import org.opentripplanner.common.model.P2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class GeometryUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(GeometryUtils.class);
 
-    private static CoordinateSequenceFactory csf =
-            new Serializable2DPackedCoordinateSequenceFactory();
+    private static CoordinateSequenceFactory csf = new Serializable2DPackedCoordinateSequenceFactory();
     private static GeometryFactory gf = new GeometryFactory(csf);
+
+    /** A shared copy of the WGS84 CRS with longitude-first axis order. */
+    public static final CoordinateReferenceSystem WGS84_XY;
+    static {
+        try {
+            WGS84_XY = CRS.getAuthorityFactory(true).createCoordinateReferenceSystem("EPSG:4326");
+        } catch (Exception ex) {
+            LOG.error("Unable to create longitude-first WGS84 CRS", ex);
+            throw new RuntimeException("Could not create longitude-first WGS84 coordinate reference system.");
+        }
+    }
 
     public static LineString makeLineString(double... coords) {
         GeometryFactory factory = getGeometryFactory();

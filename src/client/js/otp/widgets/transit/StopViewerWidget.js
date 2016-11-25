@@ -100,13 +100,18 @@ otp.widgets.transit.StopViewerWidget =
             this_.times = [];
             // rearrange stoptimes, flattening and sorting;
             _.each(data, function(stopTime){
-                var routeId = stopTime.pattern.id.substring(0,stopTime.pattern.id.lastIndexOf(':'));
+                //extract routeId from pattern.id, which is in the form of agency_d:route_id:direction_id:count
+                var parts = stopTime.pattern.id.split(":");
+                var routeId = parts[0] + ":" + parts[1];
                 _.each(stopTime.times,function(time){
+                    if (time.stopIndex === time.stopCount - 1) return;
                     var pushTime = {};
                     pushTime.routeShortName = this_.module.webapp.indexApi.routes[routeId].routeData.shortName;
                     pushTime.routeLongName = this_.module.webapp.indexApi.routes[routeId].routeData.longName;
                     pushTime.time = time.realtimeDeparture;
                     pushTime.serviceDay = time.serviceDay;
+                    pushTime.headsign = time.headsign;
+                    pushTime.blockId = time.blockId;
                     this_.times.push(pushTime);
                 });
             });

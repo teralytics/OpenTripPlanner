@@ -452,7 +452,7 @@ public class ProfileRouter {
         // Set batch after context, so both origin and dest vertices will be found.
         rr.batch = (true);
         rr.walkSpeed = request.walkSpeed;
-        rr.dominanceFunction = new DominanceFunction.MinimumWeight();
+        rr.dominanceFunction = new DominanceFunction.EarliestArrival();
         // RR dateTime defaults to currentTime.
         // If elapsed time is not capped, searches are very slow.
         int minAccessTime = 0;
@@ -580,7 +580,7 @@ public class ProfileRouter {
                 TransitStop tstop = graph.index.stopVertexForStop.get(stop);
                 // Iterate over street intersections in the vicinity of this particular transit stop.
                 // Shift the time range at this transit stop, merging it into that for all reachable street intersections.
-                TObjectIntMap<Vertex> distanceToVertex = stopTreeCache.getDistancesForStop(tstop);
+                TObjectIntMap<Vertex> distanceToVertex = null; //FIXME stopTreeCache.getDistancesForStop(tstop);
                 for (TObjectIntIterator<Vertex> iter = distanceToVertex.iterator(); iter.hasNext(); ) {
                     iter.advance();
                     Vertex vertex = iter.key();

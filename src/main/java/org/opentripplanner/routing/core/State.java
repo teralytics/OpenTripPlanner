@@ -21,15 +21,9 @@ import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.Trip;
 import org.opentripplanner.routing.algorithm.NegativeWeightException;
-import org.opentripplanner.routing.automata.AutomatonState;
-import org.opentripplanner.routing.edgetype.OnboardEdge;
-import org.opentripplanner.routing.edgetype.TablePatternEdge;
-import org.opentripplanner.routing.edgetype.StreetEdge;
-import org.opentripplanner.routing.edgetype.TransitBoardAlight;
-import org.opentripplanner.routing.edgetype.TripPattern;
+import org.opentripplanner.routing.edgetype.*;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Vertex;
-import org.opentripplanner.routing.pathparser.PathParser;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +98,14 @@ public class State implements Cloneable {
      * a RoutingContext in TransitIndex, tests, etc.
      */
     public State(Vertex vertex, Edge backEdge, long timeSeconds, RoutingRequest options) {
+        this(vertex, backEdge, timeSeconds, timeSeconds, options);
+    }
+    
+    /**
+     * Create an initial state, forcing vertex, back edge, time and start time to the specified values. Useful for starting
+     * a multiple initial state search, for example when propagating profile results to the street network in RoundBasedProfileRouter.
+     */
+    public State(Vertex vertex, Edge backEdge, long timeSeconds, long startTime, RoutingRequest options) {
         this.weight = 0;
         this.vertex = vertex;
         this.backEdge = backEdge;
@@ -112,7 +114,7 @@ public class State implements Cloneable {
         // note that here we are breaking the circular reference between rctx and options
         // this should be harmless since reversed clones are only used when routing has finished
         this.stateData.opt = options;
-        this.stateData.startTime = timeSeconds;
+        this.stateData.startTime = startTime;
         this.stateData.usingRentedBike = false;
         /* If the itinerary is to begin with a car that is left for transit, the initial state of arriveBy searches is
            with the car already "parked" and in WALK mode. Otherwise, we are in CAR mode and "unparked". */
@@ -127,10 +129,6 @@ public class State implements Cloneable {
         this.walkDistance = 0;
         this.preTransitTime = 0;
         this.time = timeSeconds * 1000;
-        if (options.rctx != null) {
-            this.pathParserStates = new int[options.rctx.pathParsers.length];
-            Arrays.fill(this.pathParserStates, AutomatonState.START);
-        }
         stateData.routeSequence = new AgencyAndId[0];
     }
 
@@ -392,7 +390,7 @@ public class State implements Cloneable {
      * right thing to do.
      */
     public Trip getBackTrip () {
-        if (backEdge instanceof TablePatternEdge) {
+        if (backEdge instanceof TablePatternEdge || backEdge instanceof PatternInterlineDwell) {
             return stateData.tripTimes.trip;
         }
         else {
@@ -619,14 +617,6 @@ public class State implements Cloneable {
         return foundAlternatePaths;
     }
     
-    public boolean allPathParsersAccept() {
-        PathParser[] parsers = this.stateData.opt.rctx.pathParsers;
-        for (int i = 0; i < parsers.length; i++) {
-            if ( ! parsers[i].accepts(pathParserStates[i])) return false;
-        }
-        return true;
-    }
-
     public String getPathParserStates() {
         StringBuilder sb = new StringBuilder();
         sb.append("( ");
@@ -668,11 +658,6 @@ public class State implements Cloneable {
         State unoptimized = orig;
         State ret = orig.reversedClone();
         long newInitialWaitTime = this.stateData.initialWaitTime;
-        PathParser pathParsers[];
-
-        // disable path parsing temporarily
-        pathParsers = stateData.opt.rctx.pathParsers;
-        stateData.opt.rctx.pathParsers = new PathParser[0];
 
         Edge edge = null;
 
@@ -712,9 +697,6 @@ public class State implements Cloneable {
                             + "in a K+R result, this is not totally unexpected. Otherwise, you "
                             + "might want to look into it.");
 
-                    // re-enable path parsing
-                    stateData.opt.rctx.pathParsers = pathParsers;
-
                     if (forward)
                         return this;
                     else
@@ -752,9 +734,6 @@ public class State implements Cloneable {
             
             orig = orig.getBackState();
         }
-            
-        // re-enable path parsing
-        stateData.opt.rctx.pathParsers = pathParsers;
 
         if (forward) {
             State reversed = ret.reverse();
@@ -850,4 +829,9 @@ public class State implements Cloneable {
     public double getOptimizedElapsedTimeSeconds() {
         return getElapsedTimeSeconds() - stateData.initialWaitTime;
     }
+
+    public boolean hasEnteredNoThruTrafficArea() {
+        return stateData.enteredNoThroughTrafficArea;
+    }
+
 }

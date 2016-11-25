@@ -21,15 +21,14 @@ import org.opentripplanner.routing.vertextype.TransitStation;
 import org.opentripplanner.routing.vertextype.TransitStop;
 
 import com.vividsolutions.jts.geom.LineString;
+import java.util.Locale;
 
 /**
  * An edge that connects a parent station to a constituent stop. This is not intended to provide
  * implicit transfers (i.e. child stop to parent station to another child stop) but instead to allow
  * beginning or ending a path (itinerary) at a parent station.
  * 
- * Currently this edge is only intended for use in the long distance path service. The path parsers
- * should ensure that it is effectively ignored in other path services, and even in the long distance
- * path service anywhere but the beginning or end of a path.
+ * Currently this edge is only intended for use at the beginning or end of a path.
  * 
  * Note that when most users specify that they want to depart from a parent stop at 8AM, they 
  * actually want to leave from any constituent stop at or after exactly 8AM and are accounting for
@@ -49,6 +48,9 @@ public class StationStopEdge extends Edge {
 
     @Override
     public State traverse(State s0) {
+        if (s0.backEdge instanceof StationStopEdge) {
+            return null;
+        }
         StateEditor s1 = s0.edit(this);
         s1.setBackMode(TraverseMode.LEG_SWITCH);
         s1.incrementWeight(1);
@@ -68,6 +70,11 @@ public class StationStopEdge extends Edge {
 
     @Override
     public String getName() {
+        return null;
+    }
+
+    @Override
+    public String getName(Locale locale) {
         return null;
     }
 

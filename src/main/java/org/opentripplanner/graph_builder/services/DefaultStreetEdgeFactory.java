@@ -21,32 +21,33 @@ import org.opentripplanner.routing.edgetype.StreetWithElevationEdge;
 import org.opentripplanner.routing.vertextype.IntersectionVertex;
 
 import com.vividsolutions.jts.geom.LineString;
+import org.opentripplanner.util.I18NString;
 
 public class DefaultStreetEdgeFactory implements StreetEdgeFactory {
 
     public boolean useElevationData = false;
 
     @Override
-    public StreetEdge createEdge(int fwdId, long osmId, IntersectionVertex startEndpoint, IntersectionVertex endEndpoint,
-            LineString geometry, String name, double length, StreetTraversalPermission permissions,
+    public StreetEdge createEdge(IntersectionVertex startEndpoint, IntersectionVertex endEndpoint,
+            LineString geometry, I18NString name, double length, StreetTraversalPermission permissions,
             boolean back) {
         StreetEdge pse;
         if (useElevationData) {
-            pse = new StreetWithElevationEdge(back ? fwdId : 0, osmId, startEndpoint, endEndpoint, geometry, name, length,
+            pse = new StreetWithElevationEdge(startEndpoint, endEndpoint, geometry, name, length,
                     permissions, back);
         } else {
-            pse = new StreetEdge(back ? fwdId : 0, osmId, startEndpoint, endEndpoint, geometry, name, length, permissions,
+            pse = new StreetEdge(startEndpoint, endEndpoint, geometry, name, length, permissions,
                     back);
         }
         return pse;
     }
 
     @Override
-    public AreaEdge createAreaEdge(int id, long osmId, IntersectionVertex startEndpoint,
-            IntersectionVertex endEndpoint, LineString geometry, String name, double length,
+    public AreaEdge createAreaEdge(IntersectionVertex startEndpoint,
+            IntersectionVertex endEndpoint, LineString geometry, I18NString name, double length,
             StreetTraversalPermission permissions, boolean back, AreaEdgeList area) {
         // By default AreaEdge are elevation-capable so nothing to do.
-        AreaEdge ae = new AreaEdge(id, osmId, startEndpoint, endEndpoint, geometry, name, length, permissions,
+        AreaEdge ae = new AreaEdge(startEndpoint, endEndpoint, geometry, name, length, permissions,
                 back, area);
         return ae;
     }

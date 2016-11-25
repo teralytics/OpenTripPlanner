@@ -15,13 +15,14 @@ package org.opentripplanner;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
+import org.opentripplanner.graph_builder.module.StreetLinkerModule;
 import org.opentripplanner.gtfs.GtfsContext;
 import org.opentripplanner.gtfs.GtfsLibrary;
 import org.opentripplanner.routing.edgetype.factory.GTFSPatternHopFactory;
 import org.opentripplanner.routing.edgetype.factory.TransferGraphLinker;
-import org.opentripplanner.routing.edgetype.loader.NetworkLinker;
 import org.opentripplanner.routing.graph.Graph;
 
 public class ConstantsForTests {
@@ -30,7 +31,11 @@ public class ConstantsForTests {
 
     public static final String PORTLAND_GTFS = "src/test/resources/google_transit.zip";
 
+    public static final String KCM_GTFS = "src/test/resources/kcm_gtfs.zip";
+    
     public static final String FAKE_GTFS = "src/test/resources/testagency.zip";
+
+    public static final String FARE_COMPONENT_GTFS = "src/test/resources/farecomponent_gtfs.zip";
 
     private static ConstantsForTests instance = null;
 
@@ -79,8 +84,9 @@ public class ConstantsForTests {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-        NetworkLinker nl = new NetworkLinker(portlandGraph);
-        nl.createLinkage();
+
+        StreetLinkerModule ttsnm = new StreetLinkerModule();
+        ttsnm.buildGraph(portlandGraph, new HashMap<Class<?>, Object>());
     }
     
     public static Graph buildGraph(String path) {

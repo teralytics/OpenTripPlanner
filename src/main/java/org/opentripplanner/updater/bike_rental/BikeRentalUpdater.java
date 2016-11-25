@@ -15,7 +15,6 @@ package org.opentripplanner.updater.bike_rental;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,23 +22,22 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.prefs.Preferences;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import org.opentripplanner.graph_builder.linking.SimpleStreetSplitter;
 import org.opentripplanner.routing.bike_rental.BikeRentalStation;
 import org.opentripplanner.routing.bike_rental.BikeRentalStationService;
 import org.opentripplanner.routing.edgetype.RentABikeOffEdge;
 import org.opentripplanner.routing.edgetype.RentABikeOnEdge;
-import org.opentripplanner.routing.edgetype.loader.LinkRequest;
-import org.opentripplanner.routing.edgetype.loader.NetworkLinkerLibrary;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.vertextype.BikeRentalStationVertex;
 import org.opentripplanner.updater.GraphUpdaterManager;
 import org.opentripplanner.updater.GraphWriterRunnable;
-import org.opentripplanner.updater.PollingGraphUpdater;
 import org.opentripplanner.updater.JsonConfigurable;
+import org.opentripplanner.updater.PollingGraphUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Dynamic bike-rental station updater which encapsulate one BikeRentalDataSource.
@@ -68,7 +66,7 @@ public class BikeRentalUpdater extends PollingGraphUpdater {
 
     private Graph graph;
 
-    private NetworkLinkerLibrary networkLinkerLibrary;
+    private SimpleStreetSplitter linker;
 
     private BikeRentalStationService service;
 
@@ -83,14 +81,15 @@ public class BikeRentalUpdater extends PollingGraphUpdater {
     protected void configurePolling (Graph graph, JsonNode config) throws Exception {
 
         // Set data source type from config JSON
-        String sourceType =config.path("sourceType").asText();
-        String apiKey =config.path("apiKey").asText();
+        String sourceType = config.path("sourceType").asText();
+        String apiKey = config.path("apiKey").asText();
+        String networkName = config.path("network").asText();
         BikeRentalDataSource source = null;
         if (sourceType != null) {
             if (sourceType.equals("jcdecaux")) {
                 source = new JCDecauxBikeRentalDataSource();
             } else if (sourceType.equals("b-cycle")) {
-                source = new BCycleBikeRentalDataSource(apiKey);
+                source = new BCycleBikeRentalDataSource(apiKey, networkName);
             } else if (sourceType.equals("bixi")) {
                 source = new BixiBikeRentalDataSource();
             } else if (sourceType.equals("keolis-rennes")) {
@@ -101,6 +100,16 @@ public class BikeRentalUpdater extends PollingGraphUpdater {
                 source = new CityBikesBikeRentalDataSource();
             } else if (sourceType.equals("vcub")) {
                 source = new VCubDataSource();
+            } else if (sourceType.equals("citi-bike-nyc")) {
+                source = new CitiBikeNycBikeRentalDataSource(networkName);
+            } else if (sourceType.equals("next-bike")) {
+                source = new NextBikeRentalDataSource(networkName);
+            } else if (sourceType.equals("kml")) {
+                source = new GenericKmlBikeRentalDataSource();
+            } else if (sourceType.equals("sf-bay-area")) {
+                source = new SanFranciscoBayAreaBikeRentalDataSource(networkName);
+            } else if (sourceType.equals("share-bike")) {
+                source = new ShareBikeRentalDataSource();
             }
         }
 
@@ -121,8 +130,7 @@ public class BikeRentalUpdater extends PollingGraphUpdater {
     @Override
     public void setup() throws InterruptedException, ExecutionException {
         // Creation of network linker library will not modify the graph
-        networkLinkerLibrary = new NetworkLinkerLibrary(graph,
-                Collections.<Class<?>, Object> emptyMap());
+        linker = new SimpleStreetSplitter(graph);
 
         // Adding a bike rental station service needs a graph writer runnable
         updaterManager.executeBlocking(new GraphWriterRunnable() {
@@ -175,7 +183,10 @@ public class BikeRentalUpdater extends PollingGraphUpdater {
                 BikeRentalStationVertex vertex = verticesByStation.get(station);
                 if (vertex == null) {
                     vertex = new BikeRentalStationVertex(graph, station);
-                    LinkRequest request = networkLinkerLibrary.connectVertexToStreets(vertex);
+                    if (!linker.link(vertex)) {
+                        // the toString includes the text "Bike rental station"
+                        LOG.warn("{} not near any streets; it will not be usable.", station);
+                    }
                     verticesByStation.put(station, vertex);
                     new RentABikeOnEdge(vertex, vertex, station.networks);
                     if (station.allowDropoff)
