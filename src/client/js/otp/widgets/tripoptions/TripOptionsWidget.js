@@ -194,6 +194,13 @@ otp.widgets.tripoptions.LocationsSelector =
             $("#"+this.id+"-end").val(name || '(' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5) + ')');
         }, this));
 
+        this.tripWidget.module.on("intermediateChanged", $.proxy(function(intermediate) {
+            var coords = ''
+            intermediate.forEach(function(e) {
+                coords = coords + (e.getLatLng().lat.toFixed(5) + ',' + e.getLatLng().lng.toFixed(5) + ' ')
+            });
+            $("#"+this.id+"-intermediate").val('(' + coords + ')');
+        }, this));
     },
 
     doAfterLayout : function() {

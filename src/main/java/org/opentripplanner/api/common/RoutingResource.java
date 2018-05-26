@@ -74,6 +74,9 @@ public abstract class RoutingResource {
     @QueryParam("intermediatePlaces")
     protected List<String> intermediatePlaces;
 
+    @QueryParam("waypoints")
+    protected String waypoints;
+
     /** The date that the trip should depart (or arrive, for requests where arriveBy is true). */
     @QueryParam("date")
     protected String date;
@@ -477,6 +480,9 @@ public abstract class RoutingResource {
 
         if (intermediatePlaces != null)
             request.setIntermediatePlacesFromStrings(intermediatePlaces);
+
+        if (waypoints != null)
+            request.setWaypoints(waypoints);
 
         if (preferredRoutes != null)
             request.setPreferredRoutes(preferredRoutes);

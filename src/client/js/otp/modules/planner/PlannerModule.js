@@ -198,7 +198,10 @@ otp.modules.planner.PlannerModule =
         });
         //TRANSLATORS: Context menu
         this.webapp.map.addContextMenuItem(_tr("Set as End Location"), function(latlng) {
-            this_.setEndPoint(latlng, true);
+            this_.setEndPoint(latlng, false);
+        });
+        this.webapp.map.addContextMenuItem(_tr("Set as Intermediate Location"), function(latlng) {
+            this_.setIntermediatePoint(latlng);
         });
     },
 
@@ -210,6 +213,24 @@ otp.modules.planner.PlannerModule =
         else if(this.endLatLng == null) {
         	this.setEndPoint(new L.LatLng(event.latlng.lat, event.latlng.lng), true);
         }
+    },
+
+    setIntermediatePoint : function(latlng) {
+        if (this.intermediateMarkers == null) {
+            this.intermediateMarkers = new Array();
+        }
+        marker = new L.Marker(latlng, {icon: this.icons.intermediate, draggable: true})
+        marker.orderId = this.intermediateMarkers.length
+        this.intermediateMarkers.push(marker);
+        marker.bindPopup('<strong>' + pgettext('popup', 'Location ' + marker.orderId) + '</strong>');
+
+        marker.on('dragend', $.proxy(function() {
+            this.invokeHandlers("intermediateChanged", [this.intermediateMarkers]);
+        }, this));
+
+        this.markerLayer.addLayer(marker);
+
+        this.invokeHandlers("intermediateChanged", [this.intermediateMarkers]);
     },
 
     setStartPoint : function(latlng, update, name) {
@@ -362,6 +383,14 @@ otp.modules.planner.PlannerModule =
             if(this.numItineraries) queryParams.numItineraries = this.numItineraries;
             if(this.minTransferTime) queryParams.minTransferTime = this.minTransferTime;
             if(this.showIntermediateStops) queryParams.showIntermediateStops = this.showIntermediateStops;
+
+            if (this.intermediateMarkers) {
+                var waypoints = ''
+                this.intermediateMarkers.forEach(function(m) {
+                    waypoints = waypoints + (m.getLatLng().lat + ',' + m.getLatLng().lng + ' ')
+                })
+                _.extend(queryParams, { waypoints: waypoints } )
+            }
 
             if(otp.config.routerId !== undefined) {
                 queryParams.routerId = otp.config.routerId;

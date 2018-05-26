@@ -81,6 +81,9 @@ public class RoutingRequest implements Cloneable, Serializable {
     /** An ordered list of intermediate locations to be visited. */
     public List<GenericLocation> intermediatePlaces;
 
+    /** An ordered list of locations that the path should be close to */
+    public List<GenericLocation> waypoints;
+
     /**
      * The maximum distance (in meters) the user is willing to walk for access/egress legs.
      * Defaults to unlimited.
@@ -768,6 +771,14 @@ public class RoutingRequest implements Cloneable, Serializable {
         this.intermediatePlaces = new ArrayList<GenericLocation>(intermediates.size());
         for (String place : intermediates) {
             intermediatePlaces.add(GenericLocation.fromOldStyleString(place));
+        }
+    }
+
+    public void setWaypoints(String waypoints) {
+        String[] items = waypoints.trim().split(" ");
+        this.waypoints = new ArrayList<>(items.length);
+        for (String item: items) {
+            this.waypoints.add(GenericLocation.fromOldStyleString(item));
         }
     }
     
