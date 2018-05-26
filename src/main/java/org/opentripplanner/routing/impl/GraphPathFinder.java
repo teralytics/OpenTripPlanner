@@ -18,10 +18,7 @@ import org.onebusaway.gtfs.model.AgencyAndId;
 import org.opentripplanner.api.resource.DebugOutput;
 import org.opentripplanner.common.model.GenericLocation;
 import org.opentripplanner.routing.algorithm.AStar;
-import org.opentripplanner.routing.algorithm.strategies.EuclideanRemainingWeightHeuristic;
-import org.opentripplanner.routing.algorithm.strategies.InterleavedBidirectionalHeuristic;
-import org.opentripplanner.routing.algorithm.strategies.RemainingWeightHeuristic;
-import org.opentripplanner.routing.algorithm.strategies.TrivialRemainingWeightHeuristic;
+import org.opentripplanner.routing.algorithm.strategies.*;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.edgetype.LegSwitchingEdge;
@@ -118,6 +115,7 @@ public class GraphPathFinder {
             heuristic = new InterleavedBidirectionalHeuristic();
             reversedSearchHeuristic = new InterleavedBidirectionalHeuristic();
         } else {
+//            heuristic = (options.waypoints != null) ? new WaypointsEuclideanHeuristic() : new EuclideanRemainingWeightHeuristic();
             heuristic = new EuclideanRemainingWeightHeuristic();
             reversedSearchHeuristic = new EuclideanRemainingWeightHeuristic();
         }
@@ -132,7 +130,7 @@ public class GraphPathFinder {
         options.maxTransfers = 4;
         // Now we always use what used to be called longDistance mode. Non-longDistance mode is no longer supported.
         options.longDistance = true;
-        options.onStreetAlternatives = true;
+//        options.onStreetAlternatives = true;
         options.numItineraries = 2;
 //        options.remainingStreetsBanPercent = 0.3;
 

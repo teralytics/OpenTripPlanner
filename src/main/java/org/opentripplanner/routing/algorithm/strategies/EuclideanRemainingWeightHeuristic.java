@@ -40,10 +40,11 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
     private double lat;
     private double lon;
     private boolean transit;
-    private double walkReluctance;
-    private double maxStreetSpeed;
-    private double maxTransitSpeed;
     private double requiredWalkDistance;
+    private double maxTransitSpeed;
+
+    double walkReluctance;
+    double maxStreetSpeed;
 
     @Override
     public void initialize(RoutingRequest options, long abortTime) {
