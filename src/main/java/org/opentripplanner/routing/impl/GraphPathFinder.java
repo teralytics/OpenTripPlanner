@@ -115,8 +115,7 @@ public class GraphPathFinder {
             heuristic = new InterleavedBidirectionalHeuristic();
             reversedSearchHeuristic = new InterleavedBidirectionalHeuristic();
         } else {
-//            heuristic = (options.waypoints != null) ? new WaypointsEuclideanHeuristic() : new EuclideanRemainingWeightHeuristic();
-            heuristic = new EuclideanRemainingWeightHeuristic();
+            heuristic = (options.waypoints != null) ? new WaypointsEuclideanHeuristic() : new EuclideanRemainingWeightHeuristic();
             reversedSearchHeuristic = new EuclideanRemainingWeightHeuristic();
         }
         options.rctx.remainingWeightHeuristic = heuristic;

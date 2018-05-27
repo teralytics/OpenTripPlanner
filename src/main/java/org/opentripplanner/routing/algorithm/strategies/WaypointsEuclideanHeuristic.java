@@ -39,8 +39,10 @@ public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeurist
 
     private double calculateHeuristicCost(Double lat, Double lon, List<GenericLocation> points) {
         GenericLocation newLoc = new GenericLocation(lat, lon);
-        points.add(0, newLoc);
-        return calculateHeuristicCost(points);
+        List<GenericLocation> pts = new ArrayList<>();
+        pts.add(newLoc);
+        pts.addAll(points);
+        return calculateHeuristicCost(pts);
     }
 
     private double calculateHeuristicCost(List<GenericLocation> points) {
@@ -50,8 +52,6 @@ public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeurist
             GenericLocation next = points.get(i);
             distance += SphericalDistanceLibrary.fastDistance(prev.lat, prev.lng, next.lat, next.lng);
         }
-        double res = super.walkReluctance * distance / super.maxStreetSpeed;
-        System.out.println(res);
-        return res;
+        return super.walkReluctance * distance / super.maxStreetSpeed;
     }
 }
