@@ -15,6 +15,7 @@ package org.opentripplanner.routing.impl;
 
 import jj2000.j2k.NotImplementedError;
 import org.onebusaway.gtfs.model.AgencyAndId;
+import org.opentripplanner.routing.algorithm.strategies.WaypointsEuclideanHeuristic;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.pathparser.BasicPathParser;
@@ -94,6 +95,11 @@ public class RetryingPathServiceImpl implements PathService {
                     new NoThruTrafficPathParser() };
         }
 
+        if (options.waypoints != null) {
+            options.rctx.remainingWeightHeuristic = new WaypointsEuclideanHeuristic(500.0);
+            options.heuristicWeight = 5.0;
+        }
+
         long searchBeginTime = System.currentTimeMillis();
         
         // The list of options specifying various modes, banned routes, etc to try for multiple
@@ -136,7 +142,7 @@ public class RetryingPathServiceImpl implements PathService {
             }
             Vertex target = dst == null ? currOptions.getRoutingContext().target : dst;
             List<GraphPath> somePaths = spt.getPaths(target, optimize); // somePaths may be empty, but is never null.
-            LOG.debug("END SUBSEARCH ({} msec of {} msec total)",
+            LOG.info("END SUBSEARCH ({} msec of {} msec total)",
                     System.currentTimeMillis() - subsearchBeginTime,
                     System.currentTimeMillis() - searchBeginTime);
             LOG.debug("SPT provides {} paths to target.", somePaths.size());

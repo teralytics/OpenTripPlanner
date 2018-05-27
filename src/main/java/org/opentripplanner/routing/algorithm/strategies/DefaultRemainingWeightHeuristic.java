@@ -50,10 +50,11 @@ public class DefaultRemainingWeightHeuristic implements RemainingWeightHeuristic
     private double targetX;
     private double targetY;
     private boolean transit;
-    private double walkReluctance;
-    private double maxStreetSpeed;
     private double maxTransitSpeed;
     private double requiredWalkDistance;
+
+    double maxStreetSpeed;
+    double walkReluctance;
 
     @Override
     public void initialize(RoutingRequest options, Vertex origin, Vertex target, long abortTime) {
