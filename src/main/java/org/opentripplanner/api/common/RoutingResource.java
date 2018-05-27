@@ -69,7 +69,10 @@ public abstract class RoutingResource {
     
     /** Whether or not the order of intermediate locations is to be respected (TSP vs series). */
     @DefaultValue("false") @QueryParam("intermediatePlacesOrdered") protected Boolean intermediatePlacesOrdered;
-    
+
+    @QueryParam("waypoints")
+    protected String waypoints;
+
     /** The date that the trip should depart (or arrive, for requests where arriveBy is true). */
     @QueryParam("date") protected List<String> date;
     
@@ -410,6 +413,10 @@ public abstract class RoutingResource {
         if (intermediatePlacesOrdered == null)
             intermediatePlacesOrdered = request.intermediatePlacesOrdered;
         request.intermediatePlacesOrdered = intermediatePlacesOrdered;
+
+        if (waypoints != null)
+            request.setWaypoints(waypoints);
+
         request.setPreferredRoutes(get(preferredRoutes, n, request.getPreferredRouteStr()));
         request.setOtherThanPreferredRoutesPenalty(get(otherThanPreferredRoutesPenalty, n, request.otherThanPreferredRoutesPenalty));
         request.setPreferredAgencies(get(preferredAgencies, n, request.getPreferredAgenciesStr()));

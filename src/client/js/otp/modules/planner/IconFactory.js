@@ -246,7 +246,8 @@ otp.modules.planner.IconFactory = otp.Class({
     
     startFlag : new StartFlagIcon(),
     endFlag : new EndFlagIcon(),
-    
+    intermediate : new LargeIcon100Pct(),
+
     startBike : new StartBikeIcon(),
     endBike : new EndBikeIcon(),
     

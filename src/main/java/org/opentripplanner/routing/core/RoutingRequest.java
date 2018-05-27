@@ -85,6 +85,9 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     public boolean intermediatePlacesOrdered;
 
+    /** An ordered list of locations that the path should be close to */
+    public List<GenericLocation> waypoints;
+
     /** The maximum distance (in meters) the user is willing to walk. Defaults to unlimited. */
     public double maxWalkDistance = Double.MAX_VALUE;
 
@@ -733,7 +736,15 @@ public class RoutingRequest implements Cloneable, Serializable {
             intermediatePlaces.add(GenericLocation.fromOldStyleString(place));
         }
     }
-    
+
+    public void setWaypoints(String waypoints) {
+        String[] items = waypoints.trim().split(" ");
+        this.waypoints = new ArrayList<>(items.length);
+        for (String item: items) {
+            this.waypoints.add(GenericLocation.fromOldStyleString(item));
+        }
+    }
+
     /** Clears any intermediate places from this request. */
     public void clearIntermediatePlaces() {
         if (this.intermediatePlaces != null) {
