@@ -12,7 +12,13 @@ import java.util.List;
 public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeuristic {
 
     private List<GenericLocation> remainingWaypoints;
-    private static double alphaDistanceInM = 250.0;
+    private double alphaDistanceInM;
+    private double importanceMultiplier;
+
+    public WaypointsEuclideanHeuristic(double alphaInM, double importance) {
+        this.alphaDistanceInM = alphaInM;
+        this.importanceMultiplier = importance;
+    }
 
     @Override
     public void initialize(RoutingRequest options, long abortTime) {
@@ -52,6 +58,6 @@ public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeurist
             GenericLocation next = points.get(i);
             distance += SphericalDistanceLibrary.fastDistance(prev.lat, prev.lng, next.lat, next.lng);
         }
-        return super.walkReluctance * distance / super.maxStreetSpeed;
+        return importanceMultiplier * (super.walkReluctance * distance / super.maxStreetSpeed);
     }
 }

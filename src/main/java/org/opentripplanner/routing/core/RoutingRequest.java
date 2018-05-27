@@ -463,6 +463,10 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     public double remainingStreetsBanPercent = 0.5;
 
+    public double waypointAlphaDistanceM = 500.0;
+
+    public double heuristicImportanceWeight = 2.0;
+
     /* CONSTRUCTORS */
 
     /** Constructor for options; modes defaults to walk and transit */

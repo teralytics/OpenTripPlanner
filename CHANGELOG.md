@@ -14,3 +14,9 @@
 
 ### version 1.2.0-v2
 - [PROD-651](https://teralyticsag.atlassian.net/browse/PROD-651): adding capability to produce simple car alternatives and expose some parameters to RoutingRequest
+
+### version 1.2.0-v3
+- [PROD-1358](https://teralyticsag.atlassian.net/browse/PROD-1358):
+    - adding support to UI to add and drag intermediate points and propagate them as waypoints to RoutingRequest
+    - adding WaypointEuclideanHeuristic for CAR mode as initially implemented by Alessandro in edge repository
+    - default alpha distance 500 meters and heuristic importance weight 2.0 (allows constructing paths on major highways)
