@@ -198,7 +198,8 @@ public class GraphPathFinder {
 
             LOG.debug("we have {} paths", paths.size());
         }
-        LOG.info("END SEARCH ({} msec {} waypoints)", System.currentTimeMillis() - searchBeginTime, options.waypoints.size());
+        int nWaypoints = (options.waypoints == null) ? 0 : options.waypoints.size();
+        LOG.info("END SEARCH ({} msec {} waypoints)", System.currentTimeMillis() - searchBeginTime, nWaypoints);
         Collections.sort(paths, new PathComparator(options.arriveBy));
         return paths;
     }
