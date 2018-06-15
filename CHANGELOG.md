@@ -20,3 +20,8 @@
     - adding support to UI to add and drag intermediate points and propagate them as waypoints to RoutingRequest
     - adding WaypointEuclideanHeuristic for CAR mode as initially implemented by Alessandro in edge repository
     - default alpha distance 500 meters and heuristic importance weight 2.0 (allows constructing paths on major highways)
+
+### version 1.2.0-v4
+- [PROD-1358](https://teralyticsag.atlassian.net/browse/PROD-1358):
+    - adding sampling capability to waypoints heuristic
+    - adding support for transit mode for waypoints heuristic

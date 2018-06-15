@@ -81,8 +81,7 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
      */
     @Override
     public double estimateRemainingWeight (State s) {
-        Vertex sv = s.getVertex();
-        double euclideanDistance = SphericalDistanceLibrary.fastDistance(sv.getLat(), sv.getLon(), lat, lon);
+        double euclideanDistance = getDistance(s);
         if (transit) {
             if (euclideanDistance < requiredWalkDistance) {
                 return walkReluctance * euclideanDistance / maxStreetSpeed;
@@ -95,6 +94,11 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
             // all travel is on-street, no transit involved
             return walkReluctance * euclideanDistance / maxStreetSpeed;
         }
+    }
+
+    protected double getDistance(State s) {
+        Vertex sv = s.getVertex();
+        return SphericalDistanceLibrary.fastDistance(sv.getLat(), sv.getLon(), lat, lon);
     }
 
     /**

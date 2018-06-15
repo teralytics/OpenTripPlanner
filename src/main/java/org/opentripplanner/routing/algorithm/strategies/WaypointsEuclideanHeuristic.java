@@ -7,29 +7,64 @@ import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.graph.Vertex;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeuristic {
 
     private List<GenericLocation> remainingWaypoints;
+
     private double alphaDistanceInM;
     private double importanceMultiplier;
+    private double sample = 1.0;
 
-    public WaypointsEuclideanHeuristic(double alphaInM, double importance) {
+    public WaypointsEuclideanHeuristic(double alphaInM, double importance, double sample) {
         this.alphaDistanceInM = alphaInM;
         this.importanceMultiplier = importance;
+        this.sample = sample;
     }
 
     @Override
     public void initialize(RoutingRequest options, long abortTime) {
         super.initialize(options, abortTime);
         remainingWaypoints = new ArrayList<>();
-        remainingWaypoints.addAll(options.waypoints);
+        if (sample < 1.0) {
+            int N = Math.max(1, (int)(sample * options.waypoints.size()));
+            long seed = getSeed(options);
+            List<GenericLocation> sampledWaypoints = sample(options.waypoints, N, seed);
+            this.remainingWaypoints = sampledWaypoints;
+        } else {
+            this.remainingWaypoints.addAll(options.waypoints);
+        }
         remainingWaypoints.add(options.to);
     }
 
+    private long getSeed(RoutingRequest options) {
+        long seed = locationHashCode(options.from);
+        for (int i = 0; i < options.waypoints.size(); i++) seed += locationHashCode(options.waypoints.get(i));
+        seed += locationHashCode(options.to);
+        return seed;
+    }
+
+    private int locationHashCode(GenericLocation gl) {
+        return ((Double) (gl.lat + gl.lng)).hashCode();
+    }
+
+    private List<GenericLocation> sample(List<GenericLocation> l, int N, long seed) {
+        List<Integer> idx = new ArrayList<>();
+        int M = l.size();
+        for (int i = 0; i < M; i++) idx.add(i);
+        Collections.shuffle(idx, new Random(seed));
+        List<Integer> sampledIdx = idx.subList(0, N);
+        Collections.sort(sampledIdx);
+        List<GenericLocation> sampled = new ArrayList<>(sampledIdx.size());
+        for (int j : sampledIdx) sampled.add(l.get(j));
+        return sampled;
+    }
+
     @Override
-    public double estimateRemainingWeight(State state) {
+    public double getDistance(State state) {
         Vertex sv = state.getVertex();
         if (remainingWaypoints.size() == 1) {
             return calculateHeuristicCost(sv.getY(), sv.getX(), remainingWaypoints);

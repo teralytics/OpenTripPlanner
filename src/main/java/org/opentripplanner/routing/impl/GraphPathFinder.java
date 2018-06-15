@@ -105,17 +105,16 @@ public class GraphPathFinder {
         if (options.disableRemainingWeightHeuristic) {
             heuristic = new TrivialRemainingWeightHeuristic();
             reversedSearchHeuristic = new TrivialRemainingWeightHeuristic();
-        } else if (options.modes.isTransit()) {
-            // Only use the BiDi heuristic for transit. It is not very useful for on-street modes.
-            // heuristic = new InterleavedBidirectionalHeuristic(options.rctx.graph);
-            // Use a simplistic heuristic until BiDi heuristic is improved, see #2153
-            heuristic = new InterleavedBidirectionalHeuristic();
-            reversedSearchHeuristic = new InterleavedBidirectionalHeuristic();
         } else {
             heuristic = (options.waypoints != null) ?
-                    new WaypointsEuclideanHeuristic(options.waypointAlphaDistanceM, options.heuristicImportanceWeight) :
-                    new EuclideanRemainingWeightHeuristic();
-            reversedSearchHeuristic = new EuclideanRemainingWeightHeuristic();
+                    new WaypointsEuclideanHeuristic(
+                            options.waypointAlphaDistanceM,
+                            options.heuristicImportanceWeight,
+                            options.heuristicSample) :
+                    ((options.modes.isTransit()) ?
+                            new InterleavedBidirectionalHeuristic() : new EuclideanRemainingWeightHeuristic());
+            reversedSearchHeuristic = (options.modes.isTransit()) ?
+                    new InterleavedBidirectionalHeuristic() : new EuclideanRemainingWeightHeuristic();
         }
         options.rctx.remainingWeightHeuristic = heuristic;
 
@@ -125,7 +124,7 @@ public class GraphPathFinder {
          * search times on the LongDistancePathService, so we set it to the maximum we ever expect
          * to see. Because people may use either the traditional path services or the 
          * LongDistancePathService, we do not change the global default but override it here. */
-        options.maxTransfers = 4;
+        //options.maxTransfers = 4;
         // Now we always use what used to be called longDistance mode. Non-longDistance mode is no longer supported.
         options.longDistance = true;
 

@@ -467,6 +467,8 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     public double heuristicImportanceWeight = 2.0;
 
+    public double heuristicSample = 1.0;
+
     /* CONSTRUCTORS */
 
     /** Constructor for options; modes defaults to walk and transit */
