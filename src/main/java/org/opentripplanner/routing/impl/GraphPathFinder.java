@@ -105,16 +105,14 @@ public class GraphPathFinder {
         if (options.disableRemainingWeightHeuristic) {
             heuristic = new TrivialRemainingWeightHeuristic();
             reversedSearchHeuristic = new TrivialRemainingWeightHeuristic();
+        } else if (options.modes.isTransit()) {
+            heuristic = new InterleavedBidirectionalHeuristic();
+            reversedSearchHeuristic = new InterleavedBidirectionalHeuristic();
         } else {
             heuristic = (options.waypoints != null) ?
-                    new WaypointsEuclideanHeuristic(
-                            options.waypointAlphaDistanceM,
-                            options.heuristicImportanceWeight,
-                            options.heuristicSample) :
-                    ((options.modes.isTransit()) ?
-                            new InterleavedBidirectionalHeuristic() : new EuclideanRemainingWeightHeuristic());
-            reversedSearchHeuristic = (options.modes.isTransit()) ?
-                    new InterleavedBidirectionalHeuristic() : new EuclideanRemainingWeightHeuristic();
+                    new WaypointsEuclideanHeuristic(options.waypointAlphaDistanceM, options.heuristicImportanceWeight) :
+                    new EuclideanRemainingWeightHeuristic();
+            reversedSearchHeuristic = new EuclideanRemainingWeightHeuristic();
         }
         options.rctx.remainingWeightHeuristic = heuristic;
 

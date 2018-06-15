@@ -92,13 +92,17 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
             return transitWeight + streetWeight;
         } else {
             // all travel is on-street, no transit involved
-            return walkReluctance * euclideanDistance / maxStreetSpeed;
+            return getCarWeight(euclideanDistance);
         }
     }
 
     protected double getDistance(State s) {
         Vertex sv = s.getVertex();
         return SphericalDistanceLibrary.fastDistance(sv.getLat(), sv.getLon(), lat, lon);
+    }
+
+    protected double getCarWeight(double distance) {
+        return walkReluctance * distance / maxStreetSpeed;
     }
 
     /**
