@@ -83,13 +83,7 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
     public double estimateRemainingWeight (State s) {
         double euclideanDistance = getDistance(s);
         if (transit) {
-            if (euclideanDistance < requiredWalkDistance) {
-                return walkReluctance * euclideanDistance / maxStreetSpeed;
-            }
-            /* Due to the above conditional, the following value is known to be positive. */
-            double transitWeight = (euclideanDistance - requiredWalkDistance) / maxTransitSpeed;
-            double streetWeight = walkReluctance * (requiredWalkDistance / maxStreetSpeed);
-            return transitWeight + streetWeight;
+            return getTransitWeight(euclideanDistance);
         } else {
             // all travel is on-street, no transit involved
             return getCarWeight(euclideanDistance);
@@ -99,6 +93,16 @@ public class EuclideanRemainingWeightHeuristic implements RemainingWeightHeurist
     protected double getDistance(State s) {
         Vertex sv = s.getVertex();
         return SphericalDistanceLibrary.fastDistance(sv.getLat(), sv.getLon(), lat, lon);
+    }
+
+    protected double getTransitWeight(double distance) {
+        if (distance < requiredWalkDistance) {
+            return walkReluctance * distance / maxStreetSpeed;
+        }
+            /* Due to the above conditional, the following value is known to be positive. */
+        double transitWeight = (distance - requiredWalkDistance) / maxTransitSpeed;
+        double streetWeight = walkReluctance * (requiredWalkDistance / maxStreetSpeed);
+        return transitWeight + streetWeight;
     }
 
     protected double getCarWeight(double distance) {

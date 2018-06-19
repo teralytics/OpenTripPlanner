@@ -46,7 +46,12 @@ public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeurist
 
     @Override
     public double getCarWeight(double distance) {
-        return distance;
+        return importanceMultiplier * super.getCarWeight(distance);
+    }
+
+    @Override
+    public double getTransitWeight(double distance) {
+        return importanceMultiplier * super.getTransitWeight(distance);
     }
 
     private double calculateHeuristicCost(Double lat, Double lon, List<GenericLocation> points) {
@@ -64,6 +69,6 @@ public class WaypointsEuclideanHeuristic extends EuclideanRemainingWeightHeurist
             GenericLocation next = points.get(i);
             distance += SphericalDistanceLibrary.fastDistance(prev.lat, prev.lng, next.lat, next.lng);
         }
-        return importanceMultiplier * (super.walkReluctance * distance / super.maxStreetSpeed);
+        return distance;
     }
 }

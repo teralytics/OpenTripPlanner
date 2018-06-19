@@ -24,4 +24,7 @@
 ### version 1.2.0-v4
 - [PROD-1358](https://teralyticsag.atlassian.net/browse/PROD-1358):
     - adding sampling capability to waypoints heuristic
+
+### version 1.2.0-v5
+- [PROD-1358](https://teralyticsag.atlassian.net/browse/PROD-1358):
     - adding support for transit mode for waypoints heuristic
