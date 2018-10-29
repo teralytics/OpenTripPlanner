@@ -24,6 +24,7 @@ import org.opentripplanner.analyst.core.Sample;
 import org.opentripplanner.analyst.core.SampleSource;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
+import org.opentripplanner.graph_builder.linking.SimpleStreetSplitter;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.edgetype.StreetEdge;
@@ -31,10 +32,14 @@ import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.vertextype.OsmVertex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class SampleFactory implements SampleSource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SampleFactory.class);
 
     public SampleFactory(Graph graph) {
         this.graph = graph;
@@ -65,6 +70,8 @@ public class SampleFactory implements SampleSource {
         env.expandBy(searchRadiusLat / xscale, searchRadiusLat);
         @SuppressWarnings("unchecked")
         Collection<Vertex> vertices = graph.streetIndex.getVerticesForEnvelope(env);
+
+        LOG.info("Found " + vertices.size() + " candidate vertices with " + searchRadiusM + " meter search radius");
 
         // make sure things are in the radius
         final TIntDoubleMap distances = new TIntDoubleHashMap();
