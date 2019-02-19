@@ -174,8 +174,6 @@ public class SimpleStreetSplitter {
                 edge.getToVertex().getIncoming().contains(edge))
             .collect(Collectors.toList());
 
-        LOG.info("Found " + candidateEdges.size() + " candidate edges in " + maxSearchRadiusMeters + " meter radius");
-
         // make a map of distances
         final TIntDoubleMap distances = new TIntDoubleHashMap();
 

@@ -24,7 +24,6 @@ import org.opentripplanner.analyst.core.Sample;
 import org.opentripplanner.analyst.core.SampleSource;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
-import org.opentripplanner.graph_builder.linking.SimpleStreetSplitter;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.edgetype.StreetEdge;
@@ -41,37 +40,48 @@ public class SampleFactory implements SampleSource {
 
     private static final Logger LOG = LoggerFactory.getLogger(SampleFactory.class);
 
+    private static class SamplingResult {
+        private List<Vertex> vertices;
+        private TIntDoubleMap distances;
+
+        SamplingResult(List<Vertex> vs, TIntDoubleMap ds) {
+            this.vertices = vs;
+            this.distances = ds;
+        }
+
+        List<Vertex> getVertices() { return this.vertices; }
+        TIntDoubleMap getDistances() { return this.distances; }
+
+        boolean isEmpty() { return vertices.isEmpty(); }
+    }
+
+    private static int MIN_RADIUS = 500;
+
     public SampleFactory(Graph graph) {
         this.graph = graph;
-        this.setSearchRadiusM(500);
+        this.setSearchRadiusM(MIN_RADIUS);
     }
 
     private Graph graph;
 
     private double searchRadiusM;
-    private double searchRadiusLat;
 
     /** When are two vertices considered equidistant and the origin should be moved slightly to avoid numerical issues? */
     private final double EPSILON = 1e-10;
 
     public void setSearchRadiusM(double radiusMeters) {
         this.searchRadiusM = radiusMeters;
-        this.searchRadiusLat = SphericalDistanceLibrary.metersToDegrees(searchRadiusM);
     }
 
-    @Override
-    /** implements SampleSource interface */
-    public Sample getSample(double lon, double lat) {
+    private SamplingResult findVertices(double lat, double lon, double xscale, double radiusInM) {
         Coordinate c = new Coordinate(lon, lat);
         // query always returns a (possibly empty) list, but never null
         Envelope env = new Envelope(c);
-        // find scaling factor for equirectangular projection
-        double xscale = Math.cos(c.y * Math.PI / 180);
-        env.expandBy(searchRadiusLat / xscale, searchRadiusLat);
+
+        double radiusLat = SphericalDistanceLibrary.metersToDegrees(radiusInM);
+        env.expandBy(radiusLat / xscale, radiusLat);
         @SuppressWarnings("unchecked")
         Collection<Vertex> vertices = graph.streetIndex.getVerticesForEnvelope(env);
-
-        LOG.info("Found " + vertices.size() + " candidate vertices with " + searchRadiusM + " meter search radius");
 
         // make sure things are in the radius
         final TIntDoubleMap distances = new TIntDoubleHashMap();
@@ -85,12 +95,11 @@ public class SampleFactory implements SampleSource {
             distances.put(v.getIndex(), dx * dx + dy * dy);
         }
 
-        
-        List<Vertex> sorted = new ArrayList<Vertex>();
-        
+        List<Vertex> sorted = new ArrayList<>();
+
         for (Vertex input : vertices) {
             if (!(input instanceof OsmVertex &&
-                    distances.get(input.getIndex()) < searchRadiusLat * searchRadiusLat))
+                    distances.get(input.getIndex()) < radiusLat * radiusLat))
                 continue;
 
             for (StreetEdge e : Iterables.filter(input.getOutgoing(), StreetEdge.class)) {
@@ -100,8 +109,27 @@ public class SampleFactory implements SampleSource {
                 }
             }
         }
-        
+
+        return new SamplingResult(sorted, distances);
+    }
+
+    @Override
+    /** implements SampleSource interface */
+    public Sample getSample(double lon, double lat) {
+        // find scaling factor for equirectangular projection
+        double xscale = Math.cos(lat * Math.PI / 180);
+
+        SamplingResult samplingResult = null;
+        double radiusInM = MIN_RADIUS;
+        while (radiusInM <= searchRadiusM && (samplingResult == null || samplingResult.isEmpty()) ) {
+            samplingResult = findVertices(lat, lon, xscale, radiusInM);
+            radiusInM *= 2.0;
+        }
+
         // sort list by distance
+        List<Vertex> sorted = samplingResult.getVertices();
+        TIntDoubleMap distances = samplingResult.getDistances();
+
         Collections.sort(sorted, new Comparator<Vertex>() {
 
             @Override

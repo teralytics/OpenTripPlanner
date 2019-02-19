@@ -44,4 +44,6 @@ public class MultiTargetTerminationStrategy implements SearchTerminationStrategy
         return unreachedTargets.size() == 0;
     }
 
+    public int getReached() { return this.reachedTargets.size(); }
+    public int getUnreached() { return this.unreachedTargets.size(); }
 }
