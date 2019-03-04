@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.edgetype.EdgeInfo;
 import org.opentripplanner.routing.edgetype.PublicTransitEdge;
 import org.opentripplanner.routing.edgetype.StreetEdge;
@@ -39,18 +40,21 @@ import com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier;
 
 /** This is used by MapBuilder and it has no comments. TODO Figure out what it is for. */
 public class StreetMatcher {
+
     private static final Logger log = LoggerFactory.getLogger(StreetMatcher.class);
-    private static final double DISTANCE_THRESHOLD = 0.0002;
+
 
     Graph graph;
 
     private STRtree index;
+    private double distanceThreshold;
+    private double maxErrorInM;
 
     STRtree createIndex() {
         STRtree edgeIndex = new STRtree();
         for (Vertex v : graph.getVertices()) {
             for (Edge e : v.getOutgoing()) {
-                if (e instanceof StreetEdge || e instanceof PublicTransitEdge) {
+                if (e instanceof PublicTransitEdge) {
                     Envelope envelope;
                     Geometry geometry = e.getGeometry();
                     envelope = geometry.getEnvelopeInternal();
@@ -63,14 +67,24 @@ public class StreetMatcher {
     }
 
     public StreetMatcher(Graph graph) {
+        this(graph, 0.0002, 1000.0);
+    }
+
+    public StreetMatcher(Graph graph, Double threshold, Double maxErrorInM) {
+        this.distanceThreshold = threshold;
+        this.maxErrorInM = maxErrorInM;
         this.graph = graph;
         index = createIndex();
         index.build();
     }
 
     @SuppressWarnings("unchecked")
-    public List<Edge> match(Geometry routeGeometry, TraverseMode traverseMode) {
-        
+    public List<Edge> match(Geometry routeGeometry, TraverseMode mode) {
+        return match(routeGeometry, new TraverseModeSet(mode));
+    }
+
+    public List<Edge> match(Geometry routeGeometry, TraverseModeSet modes) {
+
         routeGeometry = removeDuplicatePoints(routeGeometry);
 
         if (routeGeometry == null) 
@@ -85,7 +99,7 @@ public class StreetMatcher {
 
         Coordinate routeStartCoordinate = startIndex.getCoordinate(routeGeometry);
         Envelope envelope = new Envelope(routeStartCoordinate);
-        double distanceThreshold = DISTANCE_THRESHOLD;
+        double distanceThreshold = this.distanceThreshold;
         envelope.expandBy(distanceThreshold);
 
         BinHeap<MatchState> states = new BinHeap<MatchState>();
@@ -100,7 +114,7 @@ public class StreetMatcher {
         for (Edge initialEdge : nearbyEdges) {
 
             if(initialEdge instanceof EdgeInfo) {
-                if (!((EdgeInfo) initialEdge).getPublicTransitType().equals(traverseMode)) {
+                if (!modes.contains(((EdgeInfo) initialEdge).getPublicTransitType())) {
                     continue;
                 }
             } else {
@@ -109,7 +123,7 @@ public class StreetMatcher {
                 continue;
             }
             if (initialEdge instanceof StreetEdge) {
-                log.debug("Initial edge is streetEdge. Traverse Mode: {}", traverseMode);
+                log.debug("Initial edge is streetEdge. Traverse Mode: {}", modes);
             }
             Geometry edgeGeometry = initialEdge.getGeometry();
             
@@ -117,7 +131,7 @@ public class StreetMatcher {
             LinearLocation initialLocation = indexedEdge.project(routeStartCoordinate);
             
             double error = MatchState.distance(initialLocation.getCoordinate(edgeGeometry), routeStartCoordinate);
-            MidblockMatchState state = new MidblockMatchState(null, routeGeometry, initialEdge, startIndex, initialLocation, error, 0.01);
+            MidblockMatchState state = new MidblockMatchState(null, routeGeometry, initialEdge, startIndex, initialLocation, error, 0.01, maxErrorInM);
             states.insert(state, 0); //make sure all initial states are visited by inserting them at 0
         }
 
@@ -142,11 +156,13 @@ public class StreetMatcher {
             if (state instanceof EndMatchState) {
                 return toEdgeList(state);
             }
-            for (MatchState next : state.getNextStates(traverseMode)) {
-                if (seen.contains(next)) {
-                    continue;
+            for (TraverseMode mode: modes.getModes()) {
+                for (MatchState next : state.getNextStates(mode)) {
+                    if (seen.contains(next)) {
+                        continue;
+                    }
+                    states.insert(next, next.getTotalError() - next.getDistanceAlongRoute());
                 }
-                states.insert(next, next.getTotalError() - next.getDistanceAlongRoute());
             }
         }
         return null;

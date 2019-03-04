@@ -31,7 +31,7 @@ import com.vividsolutions.jts.util.AssertionFailedException;
 
 public class MidblockMatchState extends MatchState {
 
-    private static final double MAX_ERROR = 1000;
+    private double maxError;
 
     private LinearLocation edgeIndex;
 
@@ -45,7 +45,7 @@ public class MidblockMatchState extends MatchState {
 
     public MidblockMatchState(MatchState parent, Geometry routeGeometry, Edge edge,
             LinearLocation routeIndex, LinearLocation edgeIndex, double error,
-            double distanceAlongRoute) {
+            double distanceAlongRoute, double maxError) {
         super(parent, edge, distanceAlongRoute);
 
         this.routeGeometry = routeGeometry;
@@ -55,6 +55,7 @@ public class MidblockMatchState extends MatchState {
         edgeGeometry = edge.getGeometry();
         indexedEdge = new LocationIndexedLine(edgeGeometry);
         currentError = error;
+        this.maxError = maxError;
     }
 
     @Override
@@ -143,7 +144,7 @@ public class MidblockMatchState extends MatchState {
 
                 double error = positionError + travelError;
                 
-                if (error > MAX_ERROR) {
+                if (error > maxError) {
                     // we're not going to bother with states which are
                     // totally wrong
                     return nextStates;
@@ -156,7 +157,7 @@ public class MidblockMatchState extends MatchState {
                         cost += NO_TRAVERSE_PENALTY;
                     }
                     MatchState nextState = new MidblockMatchState(this, routeGeometry, e,
-                            routeProjectedEndIndex, new LinearLocation(), cost, travelAlongRoute);
+                            routeProjectedEndIndex, new LinearLocation(), cost, travelAlongRoute, maxError);
                     nextStates.add(nextState);
                 }
 
@@ -173,7 +174,7 @@ public class MidblockMatchState extends MatchState {
                 double error = travelError + positionError;
 
                 MatchState nextState = new MidblockMatchState(this, routeGeometry, edge,
-                        routeSuccessor, newEdgeIndex, error, travelAlongRoute);
+                        routeSuccessor, newEdgeIndex, error, travelAlongRoute, maxError);
                 nextStates.add(nextState);
 
                 // it's also possible that, although we have not yet reached the end of this edge,
@@ -195,7 +196,7 @@ public class MidblockMatchState extends MatchState {
 
                     error = travelError + positionError;
 
-                    if (error > MAX_ERROR) {
+                    if (error > maxError) {
                         // we're not going to bother with states which are
                         // totally wrong
                         return nextStates;
@@ -208,7 +209,7 @@ public class MidblockMatchState extends MatchState {
                     }
 
                     nextState = new MidblockMatchState(this, routeGeometry, e, routeSuccessor,
-                            new LinearLocation(), cost, travelAlongRoute);
+                            new LinearLocation(), cost, travelAlongRoute, maxError);
                     nextStates.add(nextState);
                 }
 

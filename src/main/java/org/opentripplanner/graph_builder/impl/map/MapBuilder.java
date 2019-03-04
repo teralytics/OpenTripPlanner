@@ -20,6 +20,7 @@ import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.extra_graph.EdgesForRoute;
 import org.opentripplanner.graph_builder.services.GraphBuilder;
 import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.edgetype.TripPattern;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
