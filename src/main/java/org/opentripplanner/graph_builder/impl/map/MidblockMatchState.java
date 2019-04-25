@@ -13,23 +13,27 @@
 
 package org.opentripplanner.graph_builder.impl.map;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import org.opentripplanner.routing.core.TraverseMode;
-import org.opentripplanner.routing.edgetype.EdgeInfo;
-import org.opentripplanner.routing.graph.Edge;
-import org.opentripplanner.routing.graph.Vertex;
-
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.linearref.LinearLocation;
 import com.vividsolutions.jts.linearref.LocationIndexedLine;
 import com.vividsolutions.jts.util.AssertionFailedException;
+import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
+import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.edgetype.EdgeInfo;
+import org.opentripplanner.routing.graph.Edge;
+import org.opentripplanner.routing.graph.Vertex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class MidblockMatchState extends MatchState {
+
+    private static final Logger log = LoggerFactory.getLogger(MidblockMatchState.class);
 
     private double maxError;
 
@@ -39,27 +43,49 @@ public class MidblockMatchState extends MatchState {
 
     Geometry routeGeometry;
 
+    Coordinate getRouteEnd() {
+        return routeGeometry.getCoordinates()[routeGeometry.getNumPoints() - 1];
+    }
+
     private Geometry edgeGeometry;
 
     private LocationIndexedLine indexedEdge;
 
-    public MidblockMatchState(MatchState parent, Geometry routeGeometry, Edge edge,
-            LinearLocation routeIndex, LinearLocation edgeIndex, double error,
-            double distanceAlongRoute, double maxError) {
-        super(parent, edge, distanceAlongRoute);
+    public MidblockMatchState(MatchState parent, Geometry routeGeometry, Edge edge, double traveledDistance, double positionError, double maxError) {
+        super(parent, edge, traveledDistance);
 
         this.routeGeometry = routeGeometry;
-        this.routeIndex = routeIndex;
-        this.edgeIndex = edgeIndex;
-
-        edgeGeometry = edge.getGeometry();
-        indexedEdge = new LocationIndexedLine(edgeGeometry);
-        currentError = error;
+        this.edgeGeometry = edge.getGeometry();
+        this.indexedEdge = new LocationIndexedLine(edgeGeometry);
+        this.currentError = positionError;
         this.maxError = maxError;
     }
 
     @Override
     public List<MatchState> getNextStates(TraverseMode traverseMode) {
+
+        ArrayList<MatchState> nextStates = new ArrayList<>();
+
+        Vertex toVertex = edge.getToVertex();
+        double positionError = distance(toVertex.getCoordinate(), getRouteEnd());
+        double traveledDistance = getTraveledDistance() + edge.getDistance();
+
+        double distanceToEnd = SphericalDistanceLibrary.getInstance().fastDistance(getRouteEnd(), edge.getGeometry());
+
+        if (distanceToEnd <= maxError) {
+            nextStates.add(new EndMatchState(this, positionError, traveledDistance));
+        } else {
+            for (Edge e : getOutgoingMatchableEdges(toVertex, traverseMode)) {
+                MatchState nextState = new MidblockMatchState(this, routeGeometry, e, traveledDistance, positionError, maxError);
+                nextStates.add(nextState);
+            }
+        }
+
+        return nextStates;
+    }
+
+//    @Override
+    public List<MatchState> getNextStatesV2(TraverseMode traverseMode) {
         ArrayList<MatchState> nextStates = new ArrayList<MatchState>();
         if (routeIndex.getSegmentIndex() == routeGeometry.getNumPoints() - 1) {
             // this has either hit the end, or gone off the end. It's not real clear which.
@@ -157,7 +183,7 @@ public class MidblockMatchState extends MatchState {
                         cost += NO_TRAVERSE_PENALTY;
                     }
                     MatchState nextState = new MidblockMatchState(this, routeGeometry, e,
-                            routeProjectedEndIndex, new LinearLocation(), cost, travelAlongRoute, maxError);
+                            cost, travelAlongRoute, maxError);
                     nextStates.add(nextState);
                 }
 
@@ -174,7 +200,7 @@ public class MidblockMatchState extends MatchState {
                 double error = travelError + positionError;
 
                 MatchState nextState = new MidblockMatchState(this, routeGeometry, edge,
-                        routeSuccessor, newEdgeIndex, error, travelAlongRoute, maxError);
+                        error, travelAlongRoute, maxError);
                 nextStates.add(nextState);
 
                 // it's also possible that, although we have not yet reached the end of this edge,
@@ -208,8 +234,7 @@ public class MidblockMatchState extends MatchState {
                         cost += NO_TRAVERSE_PENALTY;
                     }
 
-                    nextState = new MidblockMatchState(this, routeGeometry, e, routeSuccessor,
-                            new LinearLocation(), cost, travelAlongRoute, maxError);
+                    nextState = new MidblockMatchState(this, routeGeometry, e, cost, travelAlongRoute, maxError);
                     nextStates.add(nextState);
                 }
 
@@ -228,12 +253,12 @@ public class MidblockMatchState extends MatchState {
     }
 
     public String toString() {
-        return "MidblockMatchState(" + edge + ", " + edgeIndex.getSegmentIndex() + ", "
-                + edgeIndex.getSegmentFraction() + ") - " + currentError;
+        return "MidblockMatchState(id=" + edge.getId() + ", traveled=" + getTraveledDistance() + ", error=" + currentError + ")";
     }
 
     public int hashCode() {
-        return (edge.hashCode() * 1337 + hashCode(edgeIndex)) * 1337 + hashCode(routeIndex);
+//        return (edge.hashCode() * 1337 + hashCode(edgeIndex)) * 1337 + hashCode(routeIndex);
+        return edge.hashCode();
     }
 
     private int hashCode(LinearLocation location) {
@@ -246,7 +271,8 @@ public class MidblockMatchState extends MatchState {
             return false;
         }
         MidblockMatchState other = (MidblockMatchState) o;
-        return other.edge == edge && other.edgeIndex.compareTo(edgeIndex) == 0
-                && other.routeIndex.compareTo(routeIndex) == 0;
+        return other.edge == edge;
+//                && other.edgeIndex.compareTo(edgeIndex) == 0
+//                && other.routeIndex.compareTo(routeIndex) == 0;
     }
 }

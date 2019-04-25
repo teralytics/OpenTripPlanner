@@ -223,7 +223,8 @@ public class PublicTransitEdge extends Edge implements EdgeInfo {
     @Override
     public String toString() {
         return "PublicTransitEdge{" +
-                "name='" + name + '\'' +
+                "id=" + getId() +
+                ", name='" + name + '\'' +
                 ", publicTransitType=" + publicTransitType +
                 ", level='" + getNiceLevel() + '\'' +
                 '}';

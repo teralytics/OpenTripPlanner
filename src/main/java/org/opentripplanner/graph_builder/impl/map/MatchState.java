@@ -47,10 +47,11 @@ public abstract class MatchState {
     protected Edge edge;
 
     private double distanceAlongRoute = 0;
+    private double traveledDistance = 0;
 
-    public MatchState(MatchState parent, Edge edge, double distanceAlongRoute) {
-        this.distanceAlongRoute = distanceAlongRoute;
+    public MatchState(MatchState parent, Edge edge, double traveledDistance) {
         this.parent = parent;
+        this.traveledDistance = traveledDistance;
         this.edge = edge;
         if (parent != null) {
             this.accumulatedError = parent.accumulatedError + parent.currentError;
@@ -98,6 +99,7 @@ public abstract class MatchState {
     public double getDistanceAlongRoute() {
         return distanceAlongRoute;
     }
+    public double getTraveledDistance() { return traveledDistance; }
 
     /* computes the distance, in meters, along a geometry */
     protected static double distanceAlongGeometry(Geometry geometry, LinearLocation startIndex,
