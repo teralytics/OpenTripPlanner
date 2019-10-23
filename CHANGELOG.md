@@ -28,3 +28,7 @@
 ### version 1.2.0-v5
 - [PROD-1358](https://teralyticsag.atlassian.net/browse/PROD-1358):
     - adding support for transit mode for waypoints heuristic
+
+### version 1.2.0-v7
+- [SWE-241](https://teralyticsag.atlassian.net/browse/SWE-241):
+    - adding additional conditions for access=customer to be flagged as thru traffic disallowed, needs to be a non-toll road
